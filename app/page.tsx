@@ -1,65 +1,769 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/lib/useAuth";
+import { useLanguage } from "@/lib/useLanguage";
+import { getTranslation, type Language } from "@/lib/translations";
+
+interface Media {
+  id: string;
+  title: string;
+  description?: string;
+  type: string;
+  url: string;
+  createdAt: string;
+}
 
 export default function Home() {
+  const { isLoggedIn, isLoading, logout } = useAuth();
+  const { language } = useLanguage();
+  const t = (key: string) => getTranslation(language, key);
+  const [media, setMedia] = useState<Media[]>([]);
+  const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video">("all");
+  const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [formStatus, setFormStatus] = useState("");
+
+  useEffect(() => {
+    fetchMedia();
+  }, []);
+
+  const fetchMedia = async () => {
+    try {
+      const response = await fetch("/api/media?t=" + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        setMedia(Array.isArray(data) ? data : []);
+      } else {
+        setMedia([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch media:", error);
+      setMedia([]);
+    }
+  };
+
+  const handleFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleWhatsApp = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name || !formData.email || !formData.phone || !formData.message) {
+      setFormStatus("Please fill in all fields");
+      return;
+    }
+
+    const phoneNumber = "50770176"; // Tunisia number
+    const message = encodeURIComponent(
+      `Hello AM Clean Services,\n\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nMessage:\n${formData.message}`
+    );
+
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
+
+    setFormData({ name: "", email: "", phone: "", message: "" });
+    setFormStatus("Redirecting to WhatsApp...");
+    setTimeout(() => setFormStatus(""), 3000);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-white">
+      {/* Media Lightbox Modal */}
+      {selectedMedia && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-4" onClick={() => setSelectedMedia(null)}>
+          <div className="relative bg-slate-800 rounded-3xl overflow-hidden shadow-2xl shadow-cyan-500/40 max-w-4xl w-full max-h-[90vh] flex flex-col animate-scaleIn" onClick={(e) => e.stopPropagation()}>
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedMedia(null)}
+              className="absolute top-4 right-4 z-10 bg-black/60 hover:bg-black text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl transition hover:scale-110 backdrop-blur-sm"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              ✕
+            </button>
+
+            {/* Media Container */}
+            <div className="flex-1 bg-black flex items-center justify-center min-h-96">
+              {selectedMedia.type === "image" ? (
+                <img
+                  src={selectedMedia.url}
+                  alt={selectedMedia.title}
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <video
+                  src={selectedMedia.url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+            </div>
+
+            {/* Info Section */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6 border-t border-slate-600">
+              <h2 className="text-2xl font-bold text-white mb-2">{selectedMedia.title}</h2>
+              <p className="text-gray-300 mb-4">{selectedMedia.description || "No description"}</p>
+              <p className="text-sm text-gray-400">
+                {new Date(selectedMedia.createdAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit"
+                })}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      )}
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center">
+          <div className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 bg-clip-text text-transparent whitespace-nowrap">
+            AM Clean
+          </div>
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex space-x-4 lg:space-x-8 items-center">
+            <a href="#services" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
+              {t("services")}
+            </a>
+            <a href="#about" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
+              {t("about")}
+            </a>
+            <a href="#projects" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
+              {t("projects")}
+            </a>
+            <a href="#contact" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
+              {t("contact")}
+            </a>
+            
+            {/* Dynamic Auth Buttons */}
+            {!isLoading && (
+              <div className="flex items-center gap-3">
+                {isLoggedIn ? (
+                  <>
+                    <Link
+                      href="/admin"
+                      className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:scale-105 transition font-semibold"
+                    >
+                      👨‍💼 Admin
+                    </Link>
+                    <button
+                      onClick={logout}
+                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full hover:shadow-lg hover:scale-105 transition font-semibold"
+                    >
+                      🚪 Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:scale-105 transition font-semibold"
+                  >
+                    🔐 Login
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden flex flex-col gap-1.5 p-2 hover:bg-gray-200 rounded-lg transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <span className={`w-6 h-0.5 bg-gray-700 transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+            <span className={`w-6 h-0.5 bg-gray-700 transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></span>
+            <span className={`w-6 h-0.5 bg-gray-700 transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+          </button>
         </div>
-      </main>
+
+        {/* Mobile Navigation Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 animate-slideDown">
+            <div className="max-w-7xl mx-auto px-4 py-4 space-y-3">
+              <a 
+                href="#services" 
+                className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t("services")}
+              </a>
+              <a 
+                href="#about" 
+                className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t("about")}
+              </a>
+              <a 
+                href="#projects" 
+                className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t("projects")}
+              </a>
+              <a 
+                href="#contact" 
+                className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t("contact")}
+              </a>
+
+              {/* Mobile Auth Buttons */}
+              {!isLoading && (
+                <div className="pt-2 border-t border-gray-200 space-y-2">
+                  {isLoggedIn ? (
+                    <>
+                      <Link
+                        href="/admin"
+                        className="block bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-full hover:shadow-lg transition font-semibold text-center"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        👨‍💼 Admin
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full hover:shadow-lg transition font-semibold"
+                      >
+                        🚪 Logout
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="block bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-full hover:shadow-lg transition font-semibold text-center"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      🔐 Login
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 right-10 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+          <div className="absolute -bottom-8 left-20 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{animationDelay: "2s"}}></div>
+          <div className="absolute top-1/2 left-1/2 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{animationDelay: "4s"}}></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen flex items-center justify-center pt-20 sm:pt-24 lg:pt-0">
+          <div className="text-center w-full">
+            <div className="mb-6 inline-block animate-slideDown">
+              <span className="px-3 sm:px-4 py-2 bg-cyan-500/20 border border-cyan-500/50 rounded-full text-cyan-300 text-xs sm:text-sm font-semibold backdrop-blur-sm">
+                {t("professionalCleaning")}
+              </span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl xl:text-8xl font-black mb-4 sm:mb-6 leading-tight animate-slideDown">
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent block">
+                {t("transformYourSpace")}
+              </span>
+            </h1>
+            <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed animate-slideDown px-2">
+              {t("heroParagraph")}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-slideDown px-2">
+              <a
+                href="#contact"
+                className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-cyan-500/50 transition transform hover:scale-105 w-full sm:w-auto text-center"
+              >
+                {t("getFreeQuote")}
+              </a>
+              <a
+                href="#projects"
+                className="group border-2 border-purple-400 text-purple-300 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg hover:bg-purple-400/10 transition backdrop-blur-sm w-full sm:w-auto text-center"
+              >
+                {t("viewProjects")}
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+        {/* Services Section */}
+        <section className="py-20 bg-gradient-to-b from-slate-900 to-slate-800 relative">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16 animate-slideDown">
+            <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              {t("ourServices")}
+            </h2>
+            <p className="text-gray-400 text-lg">{t("servicesSubtitle")}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: t("residentialCleaning"),
+                icon: "🏠",
+                description: t("residentialDesc"),
+                color: "from-cyan-500 to-blue-500",
+              },
+              {
+                title: t("commercialCleaning"),
+                icon: "🏢",
+                description: t("commercialDesc"),
+                color: "from-blue-500 to-purple-500",
+              },
+              {
+                title: t("specializedServices"),
+                icon: "✨",
+                description: t("specializedDesc"),
+                color: "from-purple-500 to-pink-500",
+              },
+            ].map((service, idx) => (
+              <div
+                key={idx}
+                className="service-card group relative bg-gradient-to-br from-slate-800 to-slate-700 p-8 rounded-2xl border border-slate-600 hover:border-cyan-500 transition duration-300 overflow-hidden hover:shadow-2xl hover:shadow-cyan-500/20 animate-slideUp"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-r ${service.color} opacity-0 group-hover:opacity-10 transition duration-300`}></div>
+                <div className="relative z-10">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition duration-300">{service.icon}</div>
+                  <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-300 transition">
+                    {service.title}
+                  </h3>
+                  <p className="text-gray-400 group-hover:text-gray-300 transition">{service.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-24 bg-slate-900 relative">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div className="animate-slideDown">
+              <h2 className="text-5xl md:text-6xl font-black mb-8 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                {t("aboutTitle")}
+              </h2>
+              <p className="text-gray-300 text-lg mb-4 leading-relaxed">
+                {t("aboutDesc1")}
+              </p>
+              <p className="text-gray-300 text-lg mb-4 leading-relaxed">
+                {t("aboutDesc2")}
+              </p>
+              <p className="text-gray-300 text-lg leading-relaxed">
+                {t("aboutDesc3")}
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {[
+                { title: t("professionalTeam"), description: t("professionalTeamDesc"), icon: "👨‍💼" },
+                { title: t("ecoFriendly"), description: t("ecoFriendlyDesc"), icon: "🌿" },
+                { title: t("guaranteedResults"), description: t("guaranteedResultsDesc"), icon: "✅" },
+              ].map((feature, idx) => (
+                <div key={idx} className="feature-box group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 p-6 rounded-xl border border-cyan-500/20 hover:border-cyan-500 hover:shadow-lg hover:shadow-cyan-500/20 transition backdrop-blur-sm animate-slideUp">
+                  <div className="flex items-start space-x-4">
+                    <div className="text-3xl group-hover:scale-110 transition duration-300">{feature.icon}</div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition">{feature.title}</h3>
+                      <p className="text-gray-400 group-hover:text-gray-300 transition">{feature.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Before & After Projects Section */}
+      <section id="projects" className="py-24 bg-gradient-to-b from-slate-800 to-slate-900 relative">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12 animate-slideDown">
+            <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+              {t("mediaGallery")}
+            </h2>
+            <p className="text-gray-400 text-lg mb-8">{t("gallerySubtitle")}</p>
+            
+            {/* Filter Buttons */}
+            {media.length > 0 && (
+              <div className="flex gap-3 justify-center flex-wrap">
+                <button
+                  onClick={() => setGalleryFilter("all")}
+                  className={`px-6 py-2 rounded-lg font-semibold transition ${
+                    galleryFilter === "all"
+                      ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50"
+                      : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
+                  }`}
+                >
+                  {t("all")}
+                </button>
+                <button
+                  onClick={() => setGalleryFilter("image")}
+                  className={`px-6 py-2 rounded-lg font-semibold transition ${
+                    galleryFilter === "image"
+                      ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50"
+                      : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
+                  }`}
+                >
+                  🖼️ {t("images")}
+                </button>
+                <button
+                  onClick={() => setGalleryFilter("video")}
+                  className={`px-6 py-2 rounded-lg font-semibold transition ${
+                    galleryFilter === "video"
+                      ? "bg-purple-500 text-white shadow-lg shadow-purple-500/50"
+                      : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
+                  }`}
+                >
+                  🎬 {t("videos")}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {media.length === 0 ? (
+            <div className="text-center py-24 animate-fadeIn">
+              <div className="inline-block">
+                <div className="text-6xl mb-4 opacity-50">📸</div>
+                <p className="text-gray-400 text-xl">
+                  {t("noMediaFound")}
+                </p>
+              </div>
+            </div>
+          ) : media.filter(item => galleryFilter === "all" || item.type === galleryFilter).length === 0 ? (
+            <div className="text-center py-24 animate-fadeIn">
+              <div className="inline-block">
+                <div className="text-6xl mb-4 opacity-50">{galleryFilter === "image" ? "🖼️" : "🎬"}</div>
+                <p className="text-gray-400 text-xl">
+                  {t("noFiltered")}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+              {media.filter(item => galleryFilter === "all" || item.type === galleryFilter).map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative h-72 sm:h-80 lg:h-96 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300 border-2 border-gray-200 hover:border-cyan-400 cursor-pointer bg-black"
+                  onClick={() => setSelectedMedia(item)}
+                  onMouseEnter={(e) => {
+                    const video = e.currentTarget.querySelector('video') as HTMLVideoElement;
+                    if (video) video.play();
+                  }}
+                  onMouseLeave={(e) => {
+                    const video = e.currentTarget.querySelector('video') as HTMLVideoElement;
+                    if (video) {
+                      video.pause();
+                      video.currentTime = 0;
+                    }
+                  }}
+                >
+                  {/* Background - Shows for images */}
+                  {item.type === "image" ? (
+                    <img
+                      src={item.url}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black"></div>
+                  )}
+
+                  {/* Video Element - Hidden by default, shows on hover */}
+                  {item.type === "video" && (
+                    <video
+                      src={item.url}
+                      className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      muted
+                      playsInline
+                    />
+                  )}
+
+                  {/* Dark Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-70 group-hover:opacity-60 transition-opacity duration-300"></div>
+
+                  {/* Play Icon - Only shows for videos on hover */}
+                  {item.type === "video" && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <div className="text-7xl drop-shadow-xl animate-pulse">▶️</div>
+                    </div>
+                  )}
+
+                  {/* Type Badge */}
+                  <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-20">
+                    <span className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold text-white backdrop-blur-xl border-2 transition-all duration-300 ${
+                      item.type === "image" 
+                        ? "bg-blue-500/60 border-blue-400 group-hover:bg-blue-600/70" 
+                        : "bg-purple-500/60 border-purple-400 group-hover:bg-purple-600/70"
+                    }`}>
+                      {item.type === "image" ? "📸 PHOTO" : "🎬 VIDEO"}
+                    </span>
+                  </div>
+
+                  {/* Content Area - Bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-5 lg:p-6 flex flex-col justify-end">
+                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white group-hover:text-cyan-300 transition-colors duration-300 line-clamp-2 mb-2">
+                      {item.title}
+                    </h3>
+                    {item.description && (
+                      <p className="text-xs sm:text-sm text-gray-300 line-clamp-1 mb-2 group-hover:text-gray-100 transition-colors">
+                        {item.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400 group-hover:text-cyan-300/70 transition-colors">
+                      {new Date(item.createdAt).toLocaleDateString("fr-FR", {
+                        month: "short",
+                        day: "numeric",
+                        year: "2-digit"
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-24 bg-slate-900 relative overflow-hidden">
+        {/* Background Animation */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16 animate-slideDown">
+            <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              {t("getInTouch")}
+            </h2>
+            <p className="text-gray-400 text-lg">{t("contactDescription")}</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* Contact Form */}
+            <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-6 sm:p-8 rounded-2xl border border-slate-600 hover:border-cyan-500 transition backdrop-blur-sm">
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">
+                {t("sendMessage")}
+              </h3>
+              {formStatus && (
+                <div className="mb-4 p-3 sm:p-4 bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 rounded-lg backdrop-blur-sm text-sm sm:text-base">
+                  {formStatus}
+                </div>
+              )}
+              <form onSubmit={handleWhatsApp} className="space-y-3 sm:space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-1 sm:mb-2">
+                    {t("yourName")}
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleFormChange}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-1 sm:mb-2">
+                    {t("yourEmail")}
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleFormChange}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-1 sm:mb-2">
+                    {t("yourPhone")}
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleFormChange}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
+                    placeholder="+216 50 123 456"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-1 sm:mb-2">
+                    {t("yourMessage")}
+                  </label>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleFormChange}
+                    rows={5}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition resize-none text-sm sm:text-base"
+                    placeholder={t("messageHint")}
+                    required
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/50 text-white font-bold py-2 sm:py-3 px-4 rounded-lg transition transform hover:scale-105 text-sm sm:text-base"
+                >
+                  💬 {t("sendViaWhatsApp")}
+                </button>
+              </form>
+            </div>
+
+            {/* Contact Info & Map */}
+            <div className="space-y-6 sm:space-y-8">
+              <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-6 sm:p-8 rounded-2xl border border-slate-600 hover:border-cyan-500 transition">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">
+                  {t("contactInfo")}
+                </h3>
+
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex items-start space-x-4 group cursor-pointer">
+                    <div className="text-3xl group-hover:scale-110 transition duration-300">📍</div>
+                    <div>
+                      <h4 className="font-bold text-white group-hover:text-cyan-300 transition">{t("address")}</h4>
+                      <p className="text-gray-400 group-hover:text-gray-300 transition">Cité El Khadhra, Tunisia</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-4 group cursor-pointer">
+                    <div className="text-3xl group-hover:scale-110 transition duration-300">📞</div>
+                    <div>
+                      <h4 className="font-bold text-white group-hover:text-cyan-300 transition">{t("phone")}</h4>
+                      <a href="tel:+21650770176" className="text-gray-400 hover:text-cyan-300 transition">
+                        +216 50 770 176
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-4 group cursor-pointer">
+                    <div className="text-3xl group-hover:scale-110 transition duration-300">📧</div>
+                    <div>
+                      <h4 className="font-bold text-white group-hover:text-cyan-300 transition">{t("email")}</h4>
+                      <a href="mailto:amcleanservices06@gmail.com" className="text-gray-400 hover:text-cyan-300 transition">
+                        amcleanservices06@gmail.com
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Links */}
+              <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 p-6 sm:p-8 rounded-2xl border border-purple-500/30 backdrop-blur-sm">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">
+                  {t("followUs")}
+                </h3>
+                <div className="space-y-3 sm:space-y-4">
+                  <a
+                    href="https://instagram.com/amclean.services"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-3 text-gray-300 hover:text-cyan-300 transition group"
+                  >
+                    <span className="text-2xl group-hover:scale-110 transition duration-300">📷</span>
+                    <div>
+                      <div className="font-semibold">Instagram</div>
+                      <div className="text-sm text-gray-500">@amclean.services</div>
+                    </div>
+                  </a>
+                  <a
+                    href="https://www.facebook.com/profile.php?id=61555985104044"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-3 text-gray-300 hover:text-blue-400 transition group"
+                  >
+                    <span className="text-2xl group-hover:scale-110 transition duration-300">👍</span>
+                    <div>
+                      <div className="font-semibold">Facebook</div>
+                      <div className="text-sm text-gray-500">AM Clean Services</div>
+                    </div>
+                  </a>
+                  <a
+                    href="https://wa.me/50770176"
+                    className="flex items-center space-x-3 text-gray-300 hover:text-green-400 transition group"
+                  >
+                    <span className="text-2xl group-hover:scale-110 transition duration-300">💬</span>
+                    <div>
+                      <div className="font-semibold">WhatsApp</div>
+                      <div className="text-sm text-gray-500">+216 50 770 176</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Map Section */}
+          <div className="mt-16">
+            <h3 className="text-3xl font-bold text-white mb-8 text-center">{t("ourLocation")}</h3>
+            <div className="rounded-2xl overflow-hidden shadow-2xl shadow-cyan-500/20 h-96 border border-slate-600">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3268.6235627289676!2d10.1963!3d36.8!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x130224a5d8b8b8b9%3A0x1b8b8b8b8b8b8b8b!2sC%C3%AEt%C3%A9%20El%20Khadhra!5e0!3m2!1sen!2stn"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-black/80 backdrop-blur-sm text-white py-16 border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+            <div>
+              <h4 className="text-2xl font-black mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">AM Clean Services</h4>
+              <p className="text-gray-400">{t("footerDesc")}</p>
+            </div>
+            <div>
+              <h4 className="text-lg font-bold mb-4 text-white">{t("quickLinks")}</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#services" className="hover:text-cyan-400 transition">{t("services")}</a></li>
+                <li><a href="#about" className="hover:text-cyan-400 transition">{t("about")}</a></li>
+                <li><a href="#projects" className="hover:text-cyan-400 transition">{t("projects")}</a></li>
+                <li><a href="#contact" className="hover:text-cyan-400 transition">{t("contact")}</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-lg font-bold mb-4 text-white">{t("contact")}</h4>
+              <p className="text-gray-400 hover:text-cyan-400 transition">📱 +216 50 770 176</p>
+              <p className="text-gray-400 hover:text-cyan-400 transition">📧 amcleanservices06@gmail.com</p>
+            </div>
+          </div>
+          <div className="border-t border-slate-700 pt-8 text-center text-gray-500">
+            <p>&copy; 2026 AM Clean Services. All rights reserved. ✨</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
