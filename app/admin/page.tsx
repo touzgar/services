@@ -555,10 +555,13 @@ export default function AdminDashboard() {
                 await fetch("/api/auth/logout", { method: "POST" });
                 window.location.href = "/";
               }}
-              className="bg-red-600 hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/50 text-white font-bold py-1.5 px-2 sm:px-3 md:px-6 rounded-lg transition whitespace-nowrap text-xs sm:text-sm md:text-base flex items-center gap-1"
+              className="relative group bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-1.5 px-2 sm:px-3 md:px-6 rounded-lg transition transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/50 whitespace-nowrap text-xs sm:text-sm md:text-base flex items-center gap-1 overflow-hidden"
+              title="Logout and return to home"
             >
-              <span>🚪</span>
-              <span className="hidden sm:inline">Logout</span>
+              {/* Animated background effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-orange-400 opacity-0 group-hover:opacity-20 transition duration-300"></div>
+              <span className="relative text-sm sm:text-base group-hover:animate-spin">🚪</span>
+              <span className="relative hidden sm:inline group-hover:translate-x-1 transition duration-300">Logout</span>
             </button>
           </div>
           
@@ -1248,59 +1251,59 @@ export default function AdminDashboard() {
 
             {/* Add Service Form */}
             {servicesEditing && (
-              <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600 mb-8">
-                <h3 className="text-lg font-bold text-green-300 mb-4">➕ Add New Service</h3>
-                <form onSubmit={handleAddService} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border-2 border-green-500/30 mb-6 sm:mb-8 shadow-lg shadow-green-500/10">
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-green-300 mb-4 sm:mb-6 flex items-center gap-2">➕ Add New Service</h3>
+                <form onSubmit={handleAddService} className="space-y-3 sm:space-y-4 md:space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-200 mb-2">
-                        Emoji Icon
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2">
+                        🎨 Icon
                       </label>
                       <input
                         type="text"
                         value={newService.icon}
                         onChange={(e) => setNewService({ ...newService, icon: e.target.value })}
                         maxLength={2}
-                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition text-center text-2xl"
+                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition text-center text-xl sm:text-2xl"
                         placeholder="⭐"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-200 mb-2">
-                        Title
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2">
+                        📝 Title
                       </label>
                       <input
                         type="text"
                         value={newService.title}
                         onChange={(e) => setNewService({ ...newService, title: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition"
+                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition text-xs sm:text-sm"
                         placeholder="Service title"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-200 mb-2">
-                        Description
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2">
+                        📄 Description
                       </label>
                       <input
                         type="text"
                         value={newService.description}
                         onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition"
+                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition text-xs sm:text-sm"
                         placeholder="Service description"
                       />
                     </div>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
                     <button
                       type="button"
                       onClick={() => setServicesEditing(false)}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition"
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-3 sm:px-4 rounded-lg transition transform hover:scale-105 text-xs sm:text-sm"
                     >
                       ✕ Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition"
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2 px-3 sm:px-4 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-green-500/50 text-xs sm:text-sm"
                     >
                       ✅ Add Service
                     </button>
@@ -1319,77 +1322,76 @@ export default function AdminDashboard() {
                 <p className="text-gray-400 text-lg">📭 No services yet. Add your first service!</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {services.map((service) => (
-                  <div key={service.id} className="bg-slate-700/50 rounded-lg p-6 border border-slate-600 hover:border-green-500/50 transition">
+                  <div key={service.id} className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl p-4 sm:p-6 border border-slate-600 hover:border-green-500/70 hover:shadow-lg hover:shadow-green-500/20 transition duration-300 transform hover:scale-105">
                     {editingServiceId === service.id ? (
-                      <form onSubmit={(e) => { e.preventDefault(); handleSaveServiceEdit(); }} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <form onSubmit={(e) => { e.preventDefault(); handleSaveServiceEdit(); }} className="space-y-3 sm:space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-300 mb-1">Icon</label>
+                            <label className="block text-xs font-semibold text-gray-300 mb-2">Icon</label>
                             <input
                               type="text"
                               value={editingServiceData.icon}
                               onChange={(e) => setEditingServiceData({ ...editingServiceData, icon: e.target.value })}
                               maxLength={2}
-                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white text-center text-2xl"
+                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white text-center text-2xl focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-300 mb-1">Title</label>
+                            <label className="block text-xs font-semibold text-gray-300 mb-2">Title</label>
                             <input
                               type="text"
                               value={editingServiceData.title}
                               onChange={(e) => setEditingServiceData({ ...editingServiceData, title: e.target.value })}
-                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white"
+                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-300 mb-1">Description</label>
-                            <input
-                              type="text"
+                            <label className="block text-xs font-semibold text-gray-300 mb-2">Description</label>
+                            <textarea
                               value={editingServiceData.description}
                               onChange={(e) => setEditingServiceData({ ...editingServiceData, description: e.target.value })}
-                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white"
+                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition resize-none h-16 sm:h-20"
                             />
                           </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
                           <button
                             type="button"
                             onClick={() => setEditingServiceId(null)}
-                            className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition"
+                            className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-3 rounded-lg transition text-xs sm:text-sm"
                           >
                             ✕ Cancel
                           </button>
                           <button
                             type="submit"
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition"
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition text-xs sm:text-sm"
                           >
                             💾 Save
                           </button>
                         </div>
                       </form>
                     ) : (
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4 flex-1">
-                          <div className="text-4xl pt-1">{service.icon}</div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold text-white">{service.title}</h3>
-                            <p className="text-gray-400 text-sm">{service.description}</p>
-                            <p className="text-xs text-gray-500 mt-2">Order: {service.order}</p>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="text-3xl sm:text-4xl flex-shrink-0">{service.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm sm:text-lg font-bold text-white break-words">{service.title}</h3>
+                            <p className="text-xs sm:text-sm text-gray-400 mt-1 line-clamp-2">{service.description}</p>
+                            <p className="text-xs text-gray-500 mt-2">#{service.order}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2 ml-4">
+                        <div className="flex gap-2 flex-col-reverse sm:flex-row">
                           <button
                             onClick={() => handleEditService(service)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 sm:px-3 rounded-lg transition text-xs sm:text-sm transform hover:scale-105"
                           >
                             ✏️ Edit
                           </button>
                           <button
                             onClick={() => setDeleteServiceConfirm(service.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm"
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 sm:px-3 rounded-lg transition text-xs sm:text-sm transform hover:scale-105"
                           >
                             🗑️ Delete
                           </button>
