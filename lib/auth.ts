@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 
 export async function verifyAdminCredentials(email: string, password: string) {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { email },
     });
 

@@ -26,6 +26,23 @@ interface About {
   facebook: string;
 }
 
+interface HeroSection {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  ctaText: string;
+  ctaLink: string;
+}
+
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  order: number;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { isLoggedIn, isLoading: authLoading } = useAuth();
@@ -35,7 +52,7 @@ export default function AdminDashboard() {
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mainTab, setMainTab] = useState<"media" | "about">("media");
+  const [mainTab, setMainTab] = useState<"media" | "about" | "hero" | "services">("media");
   const [activeTab, setActiveTab] = useState<"image" | "video">("image");
   const [uploadError, setUploadError] = useState("");
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video">("all");
@@ -57,6 +74,31 @@ export default function AdminDashboard() {
   const [aboutError, setAboutError] = useState("");
   const [aboutSuccess, setAboutSuccess] = useState("");
 
+  // Hero states
+  const [hero, setHero] = useState<HeroSection | null>(null);
+  const [heroLoading, setHeroLoading] = useState(false);
+  const [heroEditing, setHeroEditing] = useState(false);
+  const [heroData, setHeroData] = useState({
+    title: "",
+    subtitle: "",
+    description: "",
+    ctaText: "",
+    ctaLink: "",
+  });
+  const [heroError, setHeroError] = useState("");
+  const [heroSuccess, setHeroSuccess] = useState("");
+
+  // Services states
+  const [services, setServices] = useState<Service[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesEditing, setServicesEditing] = useState(false);
+  const [newService, setNewService] = useState({ title: "", description: "", icon: "⭐" });
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [editingServiceData, setEditingServiceData] = useState({ title: "", description: "", icon: "" });
+  const [servicesError, setServicesError] = useState("");
+  const [servicesSuccess, setServicesSuccess] = useState("");
+  const [deleteServiceConfirm, setDeleteServiceConfirm] = useState<string | null>(null);
+
   // Check authentication
   useEffect(() => {
     if (!authLoading && !isLoggedIn) {
@@ -67,6 +109,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchMedia();
     fetchAbout();
+    fetchHero();
+    fetchServices();
   }, []);
 
   const fetchMedia = async () => {
@@ -135,6 +179,173 @@ export default function AdminDashboard() {
       setAboutError("Failed to save");
     }
   };
+
+  const fetchHero = async () => {
+    try {
+      setHeroLoading(true);
+      const response = await fetch("/api/hero?t=" + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        setHero(data);
+        setHeroData({
+          title: data.title,
+          subtitle: data.subtitle,
+          description: data.description,
+          ctaText: data.ctaText,
+          ctaLink: data.ctaLink,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch hero:", error);
+    } finally {
+      setHeroLoading(false);
+    }
+  };
+
+  const handleHeroSave = async () => {
+    try {
+      setHeroError("");
+      setHeroSuccess("");
+      
+      const response = await fetch("/api/hero", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(heroData),
+      });
+
+      if (response.ok) {
+        const updatedHero = await response.json();
+        setHero(updatedHero);
+        setHeroSuccess("✅ Hero section updated successfully!");
+        setHeroEditing(false);
+        setTimeout(() => setHeroSuccess(""), 3000);
+      } else {
+        const error = await response.json();
+        setHeroError(error.error || "Failed to save");
+      }
+    } catch (error) {
+      console.error("Failed to save hero:", error);
+      setHeroError("Failed to save");
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      setServicesLoading(true);
+      const response = await fetch("/api/services?t=" + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        setServices(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch services:", error);
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  const handleAddService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newService.title || !newService.description || !newService.icon) {
+      setServicesError("Please fill in all fields");
+      return;
+    }
+
+    try {
+      setServicesError("");
+      setServicesSuccess("");
+
+      const response = await fetch("/api/services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newService),
+      });
+
+      if (response.ok) {
+        setNewService({ title: "", description: "", icon: "⭐" });
+        setServicesSuccess("✅ Service added successfully!");
+        await fetchServices();
+        setTimeout(() => setServicesSuccess(""), 3000);
+      } else {
+        const error = await response.json();
+        setServicesError(error.error || "Failed to add service");
+      }
+    } catch (error) {
+      console.error("Failed to add service:", error);
+      setServicesError("Failed to add service");
+    }
+  };
+
+  const handleEditService = async (service: Service) => {
+    setEditingServiceId(service.id);
+    setEditingServiceData({
+      title: service.title,
+      description: service.description,
+      icon: service.icon,
+    });
+  };
+
+  const handleSaveServiceEdit = async () => {
+    if (!editingServiceId) return;
+    if (!editingServiceData.title || !editingServiceData.description || !editingServiceData.icon) {
+      setServicesError("Please fill in all fields");
+      return;
+    }
+
+    try {
+      setServicesError("");
+      setServicesSuccess("");
+
+      const response = await fetch("/api/services", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingServiceId,
+          ...editingServiceData,
+        }),
+      });
+
+      if (response.ok) {
+        setEditingServiceId(null);
+        setEditingServiceData({ title: "", description: "", icon: "" });
+        setServicesSuccess("✅ Service updated successfully!");
+        await fetchServices();
+        setTimeout(() => setServicesSuccess(""), 3000);
+      } else {
+        const error = await response.json();
+        setServicesError(error.error || "Failed to update service");
+      }
+    } catch (error) {
+      console.error("Failed to update service:", error);
+      setServicesError("Failed to update service");
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    try {
+      setServicesError("");
+      setServicesSuccess("");
+
+      const response = await fetch("/api/services", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: serviceId }),
+      });
+
+      if (response.ok) {
+        setDeleteServiceConfirm(null);
+        setServicesSuccess("✅ Service deleted successfully!");
+        await fetchServices();
+        setTimeout(() => setServicesSuccess(""), 3000);
+      } else {
+        const error = await response.json();
+        setServicesError(error.error || "Failed to delete service");
+      }
+    } catch (error) {
+      console.error("Failed to delete service:", error);
+      setServicesError("Failed to delete service");
+    }
+  }
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,7 +456,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-
       {/* Media Lightbox Modal */}
       {selectedMedia && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-lg z-[50] flex items-center justify-center p-4" onClick={() => setSelectedMedia(null)}>
@@ -330,47 +540,81 @@ export default function AdminDashboard() {
       )}
       {/* Header */}
       <header className="bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 sticky top-0 z-50 shadow-lg shadow-cyan-500/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex justify-between items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 sm:flex-none">
-            <Link href="/" className="text-lg sm:text-2xl hover:text-cyan-400 transition text-cyan-400 font-bold whitespace-nowrap" title="Back to Home">
-              ← Home
-            </Link>
-           
+        <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-4 lg:px-8 py-2 sm:py-3 md:py-4">
+          {/* Top Row - Logo and Logout */}
+          <div className="flex justify-between items-center gap-2 mb-2 sm:mb-3">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+              <Link href="/" className="text-lg sm:text-xl md:text-2xl hover:text-cyan-400 transition text-cyan-400 font-bold whitespace-nowrap flex items-center gap-1" title="Back to Home">
+                <span>🏠</span>
+                <span className="hidden sm:inline">Home</span>
+              </Link>
+              <div className="hidden md:block text-sm text-gray-400 ml-4">Admin Dashboard</div>
+            </div>
+            <button
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/";
+              }}
+              className="bg-red-600 hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/50 text-white font-bold py-1.5 px-2 sm:px-3 md:px-6 rounded-lg transition whitespace-nowrap text-xs sm:text-sm md:text-base flex items-center gap-1"
+            >
+              <span>🚪</span>
+              <span className="hidden sm:inline">Logout</span>
+            </button>
           </div>
-          <button
-            onClick={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
-              window.location.href = "/";
-            }}
-            className="bg-red-600 hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/50 text-white font-bold py-2 px-4 sm:px-6 rounded-lg transition whitespace-nowrap text-sm sm:text-base"
-          >
-            🚪 Logout
-          </button>
+          
+          {/* Info Bar - Shows current section */}
+          <div className="hidden md:flex items-center gap-2 text-xs text-gray-400 px-2">
+            <span>📊</span>
+            <span>Managing: </span>
+            <span className="text-cyan-400 font-semibold">
+              {mainTab === "media" ? "Media Gallery" : mainTab === "about" ? "About & Contact" : mainTab === "hero" ? "Hero Section" : "Services"}
+            </span>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 lg:py-12">
         {/* Main Tab Navigation */}
-        <div className="flex gap-2 sm:gap-4 mb-8 border-b border-slate-600 pb-4 overflow-x-auto sticky top-20 z-40 bg-slate-900 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex gap-1 sm:gap-2 md:gap-4 mb-6 sm:mb-8 border-b border-slate-600 pb-3 sm:pb-4 overflow-x-auto sticky top-14 md:top-20 z-40 bg-slate-900 -mx-4 px-3 sm:px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
           <button
             onClick={() => setMainTab("media")}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
               mainTab === "media"
                 ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
                 : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
             }`}
           >
-            🖼️ Media Gallery
+            🖼️ <span className="hidden sm:inline">Media</span>
           </button>
           <button
             onClick={() => setMainTab("about")}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
               mainTab === "about"
                 ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50"
                 : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
             }`}
           >
-            ℹ️ About & Contact
+            ℹ️ <span className="hidden sm:inline">About</span>
+          </button>
+          <button
+            onClick={() => setMainTab("hero")}
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
+              mainTab === "hero"
+                ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/50"
+                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+            }`}
+          >
+            🎬 <span className="hidden sm:inline">Hero</span>
+          </button>
+          <button
+            onClick={() => setMainTab("services")}
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
+              mainTab === "services"
+                ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50"
+                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+            }`}
+          >
+            ⭐ <span className="hidden sm:inline">Services</span>
           </button>
         </div>
 
@@ -633,7 +877,7 @@ export default function AdminDashboard() {
           )}
         </div>
           </>
-        ) : (
+        ) : mainTab === "about" ? (
           // About & Contact Section
           <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-purple-500/10 p-6 sm:p-8 lg:p-10 border border-slate-600">
             <div className="flex justify-between items-center mb-8">
@@ -815,8 +1059,380 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+        ) : mainTab === "hero" ? (
+          // Hero Section
+          <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-orange-500/10 p-6 sm:p-8 lg:p-10 border border-slate-600">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                🎬 Hero Section
+              </h2>
+              {!heroEditing && (
+                <button
+                  onClick={() => setHeroEditing(true)}
+                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-2 px-6 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-orange-500/50"
+                >
+                  ✏️ Edit
+                </button>
+              )}
+            </div>
+
+            {heroError && (
+              <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 mb-6">
+                <p className="text-red-200 font-semibold">❌ {heroError}</p>
+              </div>
+            )}
+
+            {heroSuccess && (
+              <div className="bg-green-900/50 border-2 border-green-500 rounded-lg p-4 mb-6">
+                <p className="text-green-200 font-semibold">{heroSuccess}</p>
+              </div>
+            )}
+
+            {heroLoading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-lg">⏳ Loading...</p>
+              </div>
+            ) : heroEditing ? (
+              <form className="space-y-4 sm:space-y-5 md:space-y-6" onSubmit={(e) => { e.preventDefault(); handleHeroSave(); }}>
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                    📝 Hero Title
+                  </label>
+                  <input
+                    type="text"
+                    value={heroData.title}
+                    onChange={(e) => setHeroData({ ...heroData, title: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
+                    placeholder="e.g., Professional Cleaning Services"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                    🎯 Subtitle
+                  </label>
+                  <input
+                    type="text"
+                    value={heroData.subtitle}
+                    onChange={(e) => setHeroData({ ...heroData, subtitle: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
+                    placeholder="e.g., Trusted & Eco-Friendly"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                    📄 Description
+                  </label>
+                  <textarea
+                    value={heroData.description}
+                    onChange={(e) => setHeroData({ ...heroData, description: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base resize-none h-20 sm:h-24"
+                    placeholder="Describe your cleaning services..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                      🔘 CTA Button Text
+                    </label>
+                    <input
+                      type="text"
+                      value={heroData.ctaText}
+                      onChange={(e) => setHeroData({ ...heroData, ctaText: e.target.value })}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
+                      placeholder="e.g., Get Started"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                      🔗 CTA Button Link
+                    </label>
+                    <input
+                      type="text"
+                      value={heroData.ctaLink}
+                      onChange={(e) => setHeroData({ ...heroData, ctaLink: e.target.value })}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
+                      placeholder="e.g., #contact or /services"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeroEditing(false);
+                      if (hero) {
+                        setHeroData({
+                          title: hero.title,
+                          subtitle: hero.subtitle,
+                          description: hero.description,
+                          ctaText: hero.ctaText,
+                          ctaLink: hero.ctaLink,
+                        });
+                      }
+                    }}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105"
+                  >
+                    ✕ Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-orange-500/50"
+                  >
+                    💾 Save Changes
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-orange-300 mb-3">📝 Title</h3>
+                  <p className="text-gray-200">{hero?.title || "Not set"}</p>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-orange-300 mb-3">🎯 Subtitle</h3>
+                  <p className="text-gray-200">{hero?.subtitle || "Not set"}</p>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-orange-300 mb-3">📄 Description</h3>
+                  <p className="text-gray-200 whitespace-pre-wrap">{hero?.description || "Not set"}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-sm text-gray-400 mb-1">🔘 CTA Text</p>
+                    <p className="text-white font-semibold">{hero?.ctaText || "Not set"}</p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-sm text-gray-400 mb-1">🔗 CTA Link</p>
+                    <p className="text-white font-semibold">{hero?.ctaLink || "Not set"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Services Section
+          <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-green-500/10 p-6 sm:p-8 lg:p-10 border border-slate-600">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                ⭐ Services Management
+              </h2>
+              {!servicesEditing && (
+                <button
+                  onClick={() => setServicesEditing(true)}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-2 px-6 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-green-500/50"
+                >
+                  ➕ Add Service
+                </button>
+              )}
+            </div>
+
+            {servicesError && (
+              <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 mb-6">
+                <p className="text-red-200 font-semibold">❌ {servicesError}</p>
+              </div>
+            )}
+
+            {servicesSuccess && (
+              <div className="bg-green-900/50 border-2 border-green-500 rounded-lg p-4 mb-6">
+                <p className="text-green-200 font-semibold">{servicesSuccess}</p>
+              </div>
+            )}
+
+            {/* Add Service Form */}
+            {servicesEditing && (
+              <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600 mb-8">
+                <h3 className="text-lg font-bold text-green-300 mb-4">➕ Add New Service</h3>
+                <form onSubmit={handleAddService} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-200 mb-2">
+                        Emoji Icon
+                      </label>
+                      <input
+                        type="text"
+                        value={newService.icon}
+                        onChange={(e) => setNewService({ ...newService, icon: e.target.value })}
+                        maxLength={2}
+                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition text-center text-2xl"
+                        placeholder="⭐"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-200 mb-2">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        value={newService.title}
+                        onChange={(e) => setNewService({ ...newService, title: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition"
+                        placeholder="Service title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-200 mb-2">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        value={newService.description}
+                        onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 transition"
+                        placeholder="Service description"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setServicesEditing(false)}
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition"
+                    >
+                      ✕ Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition"
+                    >
+                      ✅ Add Service
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Services List */}
+            {servicesLoading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-lg">⏳ Loading services...</p>
+              </div>
+            ) : services.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-lg">📭 No services yet. Add your first service!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {services.map((service) => (
+                  <div key={service.id} className="bg-slate-700/50 rounded-lg p-6 border border-slate-600 hover:border-green-500/50 transition">
+                    {editingServiceId === service.id ? (
+                      <form onSubmit={(e) => { e.preventDefault(); handleSaveServiceEdit(); }} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-300 mb-1">Icon</label>
+                            <input
+                              type="text"
+                              value={editingServiceData.icon}
+                              onChange={(e) => setEditingServiceData({ ...editingServiceData, icon: e.target.value })}
+                              maxLength={2}
+                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white text-center text-2xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-300 mb-1">Title</label>
+                            <input
+                              type="text"
+                              value={editingServiceData.title}
+                              onChange={(e) => setEditingServiceData({ ...editingServiceData, title: e.target.value })}
+                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-300 mb-1">Description</label>
+                            <input
+                              type="text"
+                              value={editingServiceData.description}
+                              onChange={(e) => setEditingServiceData({ ...editingServiceData, description: e.target.value })}
+                              className="w-full px-3 py-2 bg-slate-600 border-2 border-slate-500 rounded-lg text-white"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setEditingServiceId(null)}
+                            className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition"
+                          >
+                            ✕ Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition"
+                          >
+                            💾 Save
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className="text-4xl pt-1">{service.icon}</div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-white">{service.title}</h3>
+                            <p className="text-gray-400 text-sm">{service.description}</p>
+                            <p className="text-xs text-gray-500 mt-2">Order: {service.order}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <button
+                            onClick={() => handleEditService(service)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => setDeleteServiceConfirm(service.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </main>
-    </div>
+
+      {/* Delete Service Confirmation Modal */}
+      {deleteServiceConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-gradient-to-br from-red-900/50 to-red-800/30 rounded-3xl p-8 border-2 border-red-500 shadow-2xl shadow-red-500/30 max-w-sm mx-auto animate-scaleIn">
+            <div className="text-center space-y-6">
+              <div className="text-6xl animate-bounce">⚠️</div>
+              
+              <div>
+                <h3 className="text-2xl font-black text-white mb-2">Delete Service?</h3>
+                <p className="text-gray-300">This action cannot be undone. Are you absolutely sure?</p>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  onClick={() => setDeleteServiceConfirm(null)}
+                  className="flex-1 px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition transform hover:scale-105"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteService(deleteServiceConfirm)}
+                  className="flex-1 px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition transform hover:scale-105 shadow-lg shadow-red-500/50"
+                >
+                  Delete 🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}    </div>
   );
 }

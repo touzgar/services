@@ -47,3 +47,24 @@ model About {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
+
+model HeroSection {
+  id        String     @id @default(cuid())
+  title     String     @default("")
+  subtitle  String     @default("")
+  description String   @default("")
+  ctaText   String     @default("Get Started")  // Call-to-action button text
+  ctaLink   String     @default("#contact")      // Where CTA button links to
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Service {
+  id        String     @id @default(cuid())
+  title     String
+  description String
+  icon      String     @default("✨")  // emoji or icon
+  order     Int        @default(0)     // for sorting
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}

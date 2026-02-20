@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,6 +40,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden p-4">
+      {/* Back to Home Button */}
+      <Link
+        href="/"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 bg-cyan-600 hover:bg-cyan-700 hover:shadow-lg hover:shadow-cyan-500/50 text-white font-bold py-2 px-3 sm:px-4 rounded-lg transition flex items-center gap-2 text-xs sm:text-sm"
+        title="Back to Home"
+      >
+        <span>🏠</span>
+        <span className="hidden sm:inline">Back to Home</span>
+        <span className="inline sm:hidden">Home</span>
+      </Link>
+
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 right-10 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
@@ -108,6 +120,14 @@ export default function LoginPage() {
             >
               {loading ? "⏳ Logging in..." : "🔓 Login"}
             </button>
+
+            <Link
+              href="/"
+              className="w-full block text-center bg-gray-600 hover:bg-gray-700 hover:shadow-lg hover:shadow-gray-500/50 text-white font-bold py-2 sm:py-3 px-4 rounded-lg transition transform hover:scale-105 animate-fadeIn text-sm sm:text-base mt-3"
+              style={{animationDelay: "0.3s"}}
+            >
+              ← Back to Home
+            </Link>
           </form>
 
           <p className="text-center text-xs sm:text-sm text-gray-500 mt-6">

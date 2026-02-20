@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { useLanguage } from "@/lib/useLanguage";
-import { getTranslation, type Language } from "@/lib/translations";
+import { getTranslation, type Language, type TranslationKey } from "@/lib/translations";
 
 interface Media {
   id: string;
@@ -25,12 +25,31 @@ interface About {
   facebook: string;
 }
 
+interface HeroSection {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  ctaText: string;
+  ctaLink: string;
+}
+
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  order: number;
+}
+
 export default function Home() {
   const { isLoggedIn, isLoading, logout } = useAuth();
   const { language } = useLanguage();
-  const t = (key: string) => getTranslation(language, key);
+  const t = (key: TranslationKey) => getTranslation(language, key);
   const [media, setMedia] = useState<Media[]>([]);
   const [about, setAbout] = useState<About | null>(null);
+  const [hero, setHero] = useState<HeroSection | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video">("all");
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -45,11 +64,19 @@ export default function Home() {
   useEffect(() => {
     fetchMedia();
     fetchAbout();
+    fetchHero();
+    fetchServices();
 
-    // Poll for about data updates every 3 seconds
+    // Poll for data updates every 3 seconds
     const aboutInterval = setInterval(fetchAbout, 3000);
+    const heroInterval = setInterval(fetchHero, 3000);
+    const servicesInterval = setInterval(fetchServices, 3000);
 
-    return () => clearInterval(aboutInterval);
+    return () => {
+      clearInterval(aboutInterval);
+      clearInterval(heroInterval);
+      clearInterval(servicesInterval);
+    };
   }, []);
 
   const fetchMedia = async () => {
@@ -76,6 +103,30 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Failed to fetch about:", error);
+    }
+  };
+
+  const fetchHero = async () => {
+    try {
+      const response = await fetch("/api/hero?t=" + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        setHero(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch hero:", error);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch("/api/services?t=" + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        setServices(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch services:", error);
     }
   };
 
@@ -304,23 +355,23 @@ export default function Home() {
           <div className="text-center w-full">
             <div className="mb-6 inline-block animate-slideDown">
               <span className="px-3 sm:px-4 py-2 bg-cyan-500/20 border border-cyan-500/50 rounded-full text-cyan-300 text-xs sm:text-sm font-semibold backdrop-blur-sm">
-                {t("professionalCleaning")}
+                {hero?.subtitle || t("professionalCleaning")}
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-7xl xl:text-8xl font-black mb-4 sm:mb-6 leading-tight animate-slideDown">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent block">
-                {t("transformYourSpace")}
+                {hero?.title || t("transformYourSpace")}
               </span>
             </h1>
             <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed animate-slideDown px-2">
-              {t("heroParagraph")}
+              {hero?.description || t("heroParagraph")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-slideDown px-2">
               <a
-                href="#contact"
+                href={hero?.ctaLink || "#contact"}
                 className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-cyan-500/50 transition transform hover:scale-105 w-full sm:w-auto text-center"
               >
-                {t("getFreeQuote")}
+                {hero?.ctaText || t("getFreeQuote")}
               </a>
               <a
                 href="#projects"
@@ -334,7 +385,7 @@ export default function Home() {
       </section>
 
         {/* Services Section */}
-        <section className="py-20 bg-gradient-to-b from-slate-900 to-slate-800 relative">
+        <section id="services" className="py-20 bg-gradient-to-b from-slate-900 to-slate-800 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 animate-slideDown">
             <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -344,40 +395,60 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: t("residentialCleaning"),
-                icon: "🏠",
-                description: t("residentialDesc"),
-                color: "from-cyan-500 to-blue-500",
-              },
-              {
-                title: t("commercialCleaning"),
-                icon: "🏢",
-                description: t("commercialDesc"),
-                color: "from-blue-500 to-purple-500",
-              },
-              {
-                title: t("specializedServices"),
-                icon: "✨",
-                description: t("specializedDesc"),
-                color: "from-purple-500 to-pink-500",
-              },
-            ].map((service, idx) => (
-              <div
-                key={idx}
-                className="service-card group relative bg-gradient-to-br from-slate-800 to-slate-700 p-8 rounded-2xl border border-slate-600 hover:border-cyan-500 transition duration-300 overflow-hidden hover:shadow-2xl hover:shadow-cyan-500/20 animate-slideUp"
-              >
-                <div className={`absolute inset-0 bg-gradient-to-r ${service.color} opacity-0 group-hover:opacity-10 transition duration-300`}></div>
-                <div className="relative z-10">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition duration-300">{service.icon}</div>
-                  <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-300 transition">
-                    {service.title}
-                  </h3>
-                  <p className="text-gray-400 group-hover:text-gray-300 transition">{service.description}</p>
+            {services.length > 0 ? (
+              services.sort((a, b) => a.order - b.order).map((service) => (
+                <div
+                  key={service.id}
+                  className="service-card group relative bg-gradient-to-br from-slate-800 to-slate-700 p-8 rounded-2xl border border-slate-600 hover:border-cyan-500 transition duration-300 overflow-hidden hover:shadow-2xl hover:shadow-cyan-500/20 animate-slideUp"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 opacity-0 group-hover:opacity-10 transition duration-300"></div>
+                  <div className="relative z-10">
+                    <div className="text-6xl mb-4 group-hover:scale-110 transition duration-300">{service.icon}</div>
+                    <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-300 transition">
+                      {service.title}
+                    </h3>
+                    <p className="text-gray-400 group-hover:text-gray-300 transition">{service.description}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <>
+                {[
+                  {
+                    title: t("residentialCleaning"),
+                    icon: "🏠",
+                    description: t("residentialDesc"),
+                    color: "from-cyan-500 to-blue-500",
+                  },
+                  {
+                    title: t("commercialCleaning"),
+                    icon: "🏢",
+                    description: t("commercialDesc"),
+                    color: "from-blue-500 to-purple-500",
+                  },
+                  {
+                    title: t("specializedServices"),
+                    icon: "✨",
+                    description: t("specializedDesc"),
+                    color: "from-purple-500 to-pink-500",
+                  },
+                ].map((service, idx) => (
+                  <div
+                    key={idx}
+                    className="service-card group relative bg-gradient-to-br from-slate-800 to-slate-700 p-8 rounded-2xl border border-slate-600 hover:border-cyan-500 transition duration-300 overflow-hidden hover:shadow-2xl hover:shadow-cyan-500/20 animate-slideUp"
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${service.color} opacity-0 group-hover:opacity-10 transition duration-300`}></div>
+                    <div className="relative z-10">
+                      <div className="text-6xl mb-4 group-hover:scale-110 transition duration-300">{service.icon}</div>
+                      <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-300 transition">
+                        {service.title}
+                      </h3>
+                      <p className="text-gray-400 group-hover:text-gray-300 transition">{service.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -410,21 +481,37 @@ export default function Home() {
             </div>
 
             <div className="space-y-6">
-              {[
-                { title: t("professionalTeam"), description: t("professionalTeamDesc"), icon: "👨‍💼" },
-                { title: t("ecoFriendly"), description: t("ecoFriendlyDesc"), icon: "🌿" },
-                { title: t("guaranteedResults"), description: t("guaranteedResultsDesc"), icon: "✅" },
-              ].map((feature, idx) => (
-                <div key={idx} className="feature-box group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 p-6 rounded-xl border border-cyan-500/20 hover:border-cyan-500 hover:shadow-lg hover:shadow-cyan-500/20 transition backdrop-blur-sm animate-slideUp">
-                  <div className="flex items-start space-x-4">
-                    <div className="text-3xl group-hover:scale-110 transition duration-300">{feature.icon}</div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition">{feature.title}</h3>
-                      <p className="text-gray-400 group-hover:text-gray-300 transition">{feature.description}</p>
+              {services.length > 0 ? (
+                services.slice(0, 3).sort((a, b) => a.order - b.order).map((service) => (
+                  <div key={service.id} className="feature-box group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 p-6 rounded-xl border border-cyan-500/20 hover:border-cyan-500 hover:shadow-lg hover:shadow-cyan-500/20 transition backdrop-blur-sm animate-slideUp">
+                    <div className="flex items-start space-x-4">
+                      <div className="text-3xl group-hover:scale-110 transition duration-300">{service.icon}</div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition">{service.title}</h3>
+                        <p className="text-gray-400 group-hover:text-gray-300 transition">{service.description}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <>
+                  {[
+                    { title: t("professionalTeam"), description: t("professionalTeamDesc"), icon: "👨‍💼" },
+                    { title: t("ecoFriendly"), description: t("ecoFriendlyDesc"), icon: "🌿" },
+                    { title: t("guaranteedResults"), description: t("guaranteedResultsDesc"), icon: "✅" },
+                  ].map((feature, idx) => (
+                    <div key={idx} className="feature-box group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 p-6 rounded-xl border border-cyan-500/20 hover:border-cyan-500 hover:shadow-lg hover:shadow-cyan-500/20 transition backdrop-blur-sm animate-slideUp">
+                      <div className="flex items-start space-x-4">
+                        <div className="text-3xl group-hover:scale-110 transition duration-300">{feature.icon}</div>
+                        <div>
+                          <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition">{feature.title}</h3>
+                          <p className="text-gray-400 group-hover:text-gray-300 transition">{feature.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>
