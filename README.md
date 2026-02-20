@@ -20,7 +20,8 @@ AM Clean Services is a modern, fully-featured website for a professional cleanin
 ### Key Features
 
 - 🌟 **Innovative Landing Page** - Hero section, services, about, gallery, and contact
-- 🔐 **Secure Admin Dashboard** - Manage images and videos
+- 🔐 **Secure Admin Dashboard** - Manage images, videos, and business information
+- ⚙️ **Dynamic Contact Information** - Edit all contact details in admin panel (no hardcoding)
 - 📱 **WhatsApp Integration** - Direct customer contact
 - 🗺️ **Location Map** - Business address display
 - 📸 **Before & After Gallery** - Admin-uploaded projects
@@ -75,7 +76,8 @@ npm run dev
 ├── app/
 │   ├── api/auth/      - Authentication endpoints
 │   ├── api/media/     - Media management API
-│   ├── admin/         - Admin dashboard
+│   ├── api/about/     - Contact information API
+│   ├── admin/         - Admin dashboard (media & about)
 │   ├── login/         - Login page
 │   ├── page.tsx       - Landing page
 │   └── layout.tsx     - Root layout
@@ -85,11 +87,36 @@ npm run dev
 │   ├── prisma.ts      - Database client
 │   └── createAdmin.ts - Admin creation
 ├── prisma/
-│   └── schema.prisma  - Database schema
+│   └── schema.prisma  - Database schema (User, Media, About)
 └── package.json
 ```
 
+## ℹ️ About & Contact Management
+
+The admin dashboard now includes a **dynamic contact information editor**:
+
+### 📝 Editable Fields:
+
+- **À Propos** - Company description
+- **Adresse** - Business address
+- **Téléphone** - Phone number
+- **Email** - Contact email
+- **Instagram** - Instagram profile link
+- **Facebook** - Facebook profile link
+
+### 🔄 How It Works:
+
+1. Admin logs in → Goes to **"ℹ️ About & Contact"** tab
+2. Clicks **"✏️ Edit"** button
+3. Updates all contact information
+4. Clicks **"💾 Save Changes"**
+5. Changes **automatically appear** on landing page!
+
+**No hardcoding!** All data is stored in the database and displayed dynamically.
+
 ## 📞 Business Information
+
+⚠️ **Note**: All contact information below is now managed through the admin dashboard. Edit via admin panel to update landing page.
 
 - 📍 **Address**: Cité El Khadhra, Tunisia
 - 📱 **Phone**: +216 50 770 176

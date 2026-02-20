@@ -15,11 +15,22 @@ interface Media {
   createdAt: string;
 }
 
+interface About {
+  id: string;
+  aboutText: string;
+  email: string;
+  phone: string;
+  address: string;
+  instagram: string;
+  facebook: string;
+}
+
 export default function Home() {
   const { isLoggedIn, isLoading, logout } = useAuth();
   const { language } = useLanguage();
   const t = (key: string) => getTranslation(language, key);
   const [media, setMedia] = useState<Media[]>([]);
+  const [about, setAbout] = useState<About | null>(null);
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video">("all");
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,6 +44,12 @@ export default function Home() {
 
   useEffect(() => {
     fetchMedia();
+    fetchAbout();
+
+    // Poll for about data updates every 3 seconds
+    const aboutInterval = setInterval(fetchAbout, 3000);
+
+    return () => clearInterval(aboutInterval);
   }, []);
 
   const fetchMedia = async () => {
@@ -47,6 +64,18 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to fetch media:", error);
       setMedia([]);
+    }
+  };
+
+  const fetchAbout = async () => {
+    try {
+      const response = await fetch("/api/about?t=" + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        setAbout(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch about:", error);
     }
   };
 
@@ -67,7 +96,7 @@ export default function Home() {
       return;
     }
 
-    const phoneNumber = "50770176"; // Tunisia number
+    const phoneNumber = about?.phone?.replace(/\D/g, "") || "50770176"; // Tunisia number from database
     const message = encodeURIComponent(
       `Hello AM Clean Services,\n\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nMessage:\n${formData.message}`
     );
@@ -361,15 +390,23 @@ export default function Home() {
               <h2 className="text-5xl md:text-6xl font-black mb-8 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                 {t("aboutTitle")}
               </h2>
-              <p className="text-gray-300 text-lg mb-4 leading-relaxed">
-                {t("aboutDesc1")}
-              </p>
-              <p className="text-gray-300 text-lg mb-4 leading-relaxed">
-                {t("aboutDesc2")}
-              </p>
-              <p className="text-gray-300 text-lg leading-relaxed">
-                {t("aboutDesc3")}
-              </p>
+              {about?.aboutText ? (
+                <p className="text-gray-300 text-lg leading-relaxed whitespace-pre-wrap">
+                  {about.aboutText}
+                </p>
+              ) : (
+                <>
+                  <p className="text-gray-300 text-lg mb-4 leading-relaxed">
+                    {t("aboutDesc1")}
+                  </p>
+                  <p className="text-gray-300 text-lg mb-4 leading-relaxed">
+                    {t("aboutDesc2")}
+                  </p>
+                  <p className="text-gray-300 text-lg leading-relaxed">
+                    {t("aboutDesc3")}
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -647,7 +684,7 @@ export default function Home() {
                     <div className="text-3xl group-hover:scale-110 transition duration-300">📍</div>
                     <div>
                       <h4 className="font-bold text-white group-hover:text-cyan-300 transition">{t("address")}</h4>
-                      <p className="text-gray-400 group-hover:text-gray-300 transition">Cité El Khadhra, Tunisia</p>
+                      <p className="text-gray-400 group-hover:text-gray-300 transition">{about?.address || "Loading..."}</p>
                     </div>
                   </div>
 
@@ -655,8 +692,8 @@ export default function Home() {
                     <div className="text-3xl group-hover:scale-110 transition duration-300">📞</div>
                     <div>
                       <h4 className="font-bold text-white group-hover:text-cyan-300 transition">{t("phone")}</h4>
-                      <a href="tel:+21650770176" className="text-gray-400 hover:text-cyan-300 transition">
-                        +216 50 770 176
+                      <a href={`tel:${about?.phone?.replace(/\s/g, "")}`} className="text-gray-400 hover:text-cyan-300 transition">
+                        {about?.phone || "Loading..."}
                       </a>
                     </div>
                   </div>
@@ -665,8 +702,8 @@ export default function Home() {
                     <div className="text-3xl group-hover:scale-110 transition duration-300">📧</div>
                     <div>
                       <h4 className="font-bold text-white group-hover:text-cyan-300 transition">{t("email")}</h4>
-                      <a href="mailto:amcleanservices06@gmail.com" className="text-gray-400 hover:text-cyan-300 transition">
-                        amcleanservices06@gmail.com
+                      <a href={`mailto:${about?.email}`} className="text-gray-400 hover:text-cyan-300 transition">
+                        {about?.email || "Loading..."}
                       </a>
                     </div>
                   </div>
@@ -680,7 +717,7 @@ export default function Home() {
                 </h3>
                 <div className="space-y-3 sm:space-y-4">
                   <a
-                    href="https://instagram.com/amclean.services"
+                    href={about?.instagram || "https://instagram.com"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-3 text-gray-300 hover:text-cyan-300 transition group"
@@ -688,11 +725,11 @@ export default function Home() {
                     <span className="text-2xl group-hover:scale-110 transition duration-300">📷</span>
                     <div>
                       <div className="font-semibold">Instagram</div>
-                      <div className="text-sm text-gray-500">@amclean.services</div>
+                      <div className="text-sm text-gray-500">{about?.instagram ? about.instagram.split("/").pop() : "Loading..."}</div>
                     </div>
                   </a>
                   <a
-                    href="https://www.facebook.com/profile.php?id=61555985104044"
+                    href={about?.facebook || "https://facebook.com"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-3 text-gray-300 hover:text-blue-400 transition group"
@@ -700,7 +737,7 @@ export default function Home() {
                     <span className="text-2xl group-hover:scale-110 transition duration-300">👍</span>
                     <div>
                       <div className="font-semibold">Facebook</div>
-                      <div className="text-sm text-gray-500">AM Clean Services</div>
+                      <div className="text-sm text-gray-500">{about?.facebook ? about.facebook.split("/").pop() : "Loading..."}</div>
                     </div>
                   </a>
                   <a
@@ -755,8 +792,16 @@ export default function Home() {
             </div>
             <div>
               <h4 className="text-lg font-bold mb-4 text-white">{t("contact")}</h4>
-              <p className="text-gray-400 hover:text-cyan-400 transition">📱 +216 50 770 176</p>
-              <p className="text-gray-400 hover:text-cyan-400 transition">📧 amcleanservices06@gmail.com</p>
+              <p className="text-gray-400 hover:text-cyan-400 transition">
+                <a href={`tel:${about?.phone?.replace(/\s/g, "")}`}>
+                  📱 {about?.phone || "+216 50 770 176"}
+                </a>
+              </p>
+              <p className="text-gray-400 hover:text-cyan-400 transition">
+                <a href={`mailto:${about?.email}`}>
+                  📧 {about?.email || "amcleanservices06@gmail.com"}
+                </a>
+              </p>
             </div>
           </div>
           <div className="border-t border-slate-700 pt-8 text-center text-gray-500">

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/useAuth";
 
 interface Media {
   id: string;
@@ -14,21 +16,57 @@ interface Media {
   createdAt: string;
 }
 
+interface About {
+  id: string;
+  aboutText: string;
+  email: string;
+  phone: string;
+  address: string;
+  instagram: string;
+  facebook: string;
+}
+
 export default function AdminDashboard() {
+  const router = useRouter();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const [media, setMedia] = useState<Media[]>([]);
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mainTab, setMainTab] = useState<"media" | "about">("media");
   const [activeTab, setActiveTab] = useState<"image" | "video">("image");
   const [uploadError, setUploadError] = useState("");
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video">("all");
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  
+  // About states
+  const [about, setAbout] = useState<About | null>(null);
+  const [aboutLoading, setAboutLoading] = useState(false);
+  const [aboutEditing, setAboutEditing] = useState(false);
+  const [aboutData, setAboutData] = useState({
+    aboutText: "",
+    email: "",
+    phone: "",
+    address: "",
+    instagram: "",
+    facebook: "",
+  });
+  const [aboutError, setAboutError] = useState("");
+  const [aboutSuccess, setAboutSuccess] = useState("");
+
+  // Check authentication
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.push("/login");
+    }
+  }, [authLoading, isLoggedIn, router]);
 
   useEffect(() => {
     fetchMedia();
+    fetchAbout();
   }, []);
 
   const fetchMedia = async () => {
@@ -45,6 +83,56 @@ export default function AdminDashboard() {
       setMedia([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAbout = async () => {
+    try {
+      setAboutLoading(true);
+      const response = await fetch("/api/about?t=" + Date.now());
+      if (response.ok) {
+        const data = await response.json();
+        setAbout(data);
+        setAboutData({
+          aboutText: data.aboutText,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          instagram: data.instagram,
+          facebook: data.facebook,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch about:", error);
+    } finally {
+      setAboutLoading(false);
+    }
+  };
+
+  const handleAboutSave = async () => {
+    try {
+      setAboutError("");
+      setAboutSuccess("");
+      
+      const response = await fetch("/api/about", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aboutData),
+      });
+
+      if (response.ok) {
+        const updatedAbout = await response.json();
+        setAbout(updatedAbout);
+        setAboutSuccess("✅ About & Contact updated successfully!");
+        setAboutEditing(false);
+        setTimeout(() => setAboutSuccess(""), 3000);
+      } else {
+        const error = await response.json();
+        setAboutError(error.error || "Failed to save");
+      }
+    } catch (error) {
+      console.error("Failed to save about:", error);
+      setAboutError("Failed to save");
     }
   };
 
@@ -105,6 +193,23 @@ export default function AdminDashboard() {
       console.error("Delete failed:", error);
     }
   };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-pulse">🔐</div>
+          <p className="text-white text-xl">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect will be handled by useEffect if not logged in
+  if (!isLoggedIn) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
@@ -245,6 +350,32 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Main Tab Navigation */}
+        <div className="flex gap-2 sm:gap-4 mb-8 border-b border-slate-600 pb-4 overflow-x-auto sticky top-20 z-40 bg-slate-900 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <button
+            onClick={() => setMainTab("media")}
+            className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${
+              mainTab === "media"
+                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
+                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+            }`}
+          >
+            🖼️ Media Gallery
+          </button>
+          <button
+            onClick={() => setMainTab("about")}
+            className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${
+              mainTab === "about"
+                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50"
+                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+            }`}
+          >
+            ℹ️ About & Contact
+          </button>
+        </div>
+
+        {mainTab === "media" ? (
+          <>
         {/* Upload Section - Tabbed Interface */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-cyan-500/10 p-6 sm:p-8 lg:p-10 mb-10 sm:mb-12 border border-slate-600 overflow-hidden">
           <h2 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-6 sm:mb-8">
@@ -501,6 +632,190 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+          </>
+        ) : (
+          // About & Contact Section
+          <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-purple-500/10 p-6 sm:p-8 lg:p-10 border border-slate-600">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                ℹ️ Informations de Contact
+              </h2>
+              {!aboutEditing && (
+                <button
+                  onClick={() => setAboutEditing(true)}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-2 px-6 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-purple-500/50"
+                >
+                  ✏️ Edit
+                </button>
+              )}
+            </div>
+
+            {aboutError && (
+              <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 mb-6">
+                <p className="text-red-200 font-semibold">❌ {aboutError}</p>
+              </div>
+            )}
+
+            {aboutSuccess && (
+              <div className="bg-green-900/50 border-2 border-green-500 rounded-lg p-4 mb-6">
+                <p className="text-green-200 font-semibold">{aboutSuccess}</p>
+              </div>
+            )}
+
+            {aboutLoading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-lg">⏳ Loading...</p>
+              </div>
+            ) : aboutEditing ? (
+              <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleAboutSave(); }}>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-200 mb-3">
+                    📝 À Propos (About Us)
+                  </label>
+                  <textarea
+                    value={aboutData.aboutText}
+                    onChange={(e) => setAboutData({ ...aboutData, aboutText: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition text-base resize-none h-32"
+                    placeholder="Entrez la description de votre entreprise..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-200 mb-3">
+                      📧 Email
+                    </label>
+                    <input
+                      type="email"
+                      value={aboutData.email}
+                      onChange={(e) => setAboutData({ ...aboutData, email: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition text-base"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-200 mb-3">
+                      📞 Téléphone (Phone)
+                    </label>
+                    <input
+                      type="tel"
+                      value={aboutData.phone}
+                      onChange={(e) => setAboutData({ ...aboutData, phone: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition text-base"
+                      placeholder="+216 50 000 000"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-200 mb-3">
+                      📍 Adresse (Address)
+                    </label>
+                    <input
+                      type="text"
+                      value={aboutData.address}
+                      onChange={(e) => setAboutData({ ...aboutData, address: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition text-base"
+                      placeholder="Cité El Khadhra, Tunisia"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-200 mb-3">
+                      📷 Lien Instagram (Instagram Link)
+                    </label>
+                    <input
+                      type="url"
+                      value={aboutData.instagram}
+                      onChange={(e) => setAboutData({ ...aboutData, instagram: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition text-base"
+                      placeholder="https://instagram.com/amclean.services"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-200 mb-3">
+                      👍 Lien Facebook (Facebook Link)
+                    </label>
+                    <input
+                      type="url"
+                      value={aboutData.facebook}
+                      onChange={(e) => setAboutData({ ...aboutData, facebook: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition text-base"
+                      placeholder="https://facebook.com/amclean.services"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAboutEditing(false);
+                      if (about) {
+                        setAboutData({
+                          aboutText: about.aboutText,
+                          email: about.email,
+                          phone: about.phone,
+                          address: about.address,
+                          instagram: about.instagram,
+                          facebook: about.facebook,
+                        });
+                      }
+                    }}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105"
+                  >
+                    ✕ Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-purple-500/50"
+                  >
+                    💾 Save Changes
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-purple-300 mb-3">📝 À Propos</h3>
+                  <p className="text-gray-200 whitespace-pre-wrap">{about?.aboutText || "Not set"}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-sm text-gray-400 mb-1">📍 Adresse</p>
+                    <p className="text-white font-semibold">{about?.address || "Not set"}</p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-sm text-gray-400 mb-1">📞 Téléphone</p>
+                    <p className="text-white font-semibold">{about?.phone || "Not set"}</p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-sm text-gray-400 mb-1">📧 Email</p>
+                    <p className="text-white font-semibold">{about?.email || "Not set"}</p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-sm text-gray-400 mb-1">📷 Instagram</p>
+                    <p className="text-blue-300 font-semibold truncate">
+                      <a href={about?.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-blue-200">
+                        {about?.instagram || "Not set"}
+                      </a>
+                    </p>
+                  </div>
+                  <div className="md:col-span-2 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    <p className="text-sm text-gray-400 mb-1">👍 Facebook</p>
+                    <p className="text-blue-300 font-semibold truncate">
+                      <a href={about?.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-blue-200">
+                        {about?.facebook || "Not set"}
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
