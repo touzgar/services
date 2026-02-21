@@ -70,11 +70,6 @@ export default function Home() {
     fetchHero();
     fetchServices();
 
-    // Refresh media every 10 seconds to show new uploads in real-time
-    const mediaInterval = setInterval(() => {
-      fetchMedia();
-    }, 10000);
-
     // Listen for hero section updates from admin panel
     const handleHeroUpdate = () => {
       console.log("Hero section updated - refreshing...");
@@ -84,7 +79,6 @@ export default function Home() {
     window.addEventListener('heroSectionUpdated', handleHeroUpdate);
 
     return () => {
-      clearInterval(mediaInterval);
       window.removeEventListener('heroSectionUpdated', handleHeroUpdate);
     };
   }, []);
