@@ -189,6 +189,8 @@ export default function Home() {
                   src={selectedMedia.url}
                   alt={selectedMedia.title}
                   className="max-w-full max-h-full object-contain"
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <video
@@ -593,6 +595,8 @@ export default function Home() {
                           src={item.beforeImageUrl}
                           alt="Before"
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent"></div>
                         <span className="absolute top-3 left-3 px-3 py-1 bg-red-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
@@ -608,6 +612,8 @@ export default function Home() {
                           src={item.afterImageUrl}
                           alt="After"
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent"></div>
                         <span className="absolute top-3 right-3 px-3 py-1 bg-green-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
@@ -736,6 +742,8 @@ export default function Home() {
                       src={item.url}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black"></div>
