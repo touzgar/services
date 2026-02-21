@@ -356,92 +356,56 @@ export default function Home() {
 
       {/* Innovative Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950">
-        {/* Dynamic Background Image if available */}
-        {hero?.imageUrl && (
-          <div className="absolute inset-0 z-0">
-            <img src={hero.imageUrl} alt="Hero Background" className="w-full h-full object-cover opacity-40 mix-blend-overlay" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-slate-950/20"></div>
+        {/* Dynamic Background Image if available - No dark overlays so the text on the image is perfectly legible! */}
+        {hero?.imageUrl ? (
+          <div className="w-full relative min-h-[40vh]">
+            <img
+              src={hero.imageUrl}
+              alt="Hero Banner"
+              className="w-full h-auto max-h-[85vh] object-cover object-top sm:object-center shadow-2xl"
+            />
+          </div>
+        ) : (
+          <div className="w-full h-[60vh] bg-slate-900 flex flex-col items-center justify-center">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              <div className="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-cyan-600/20 blur-[120px] mix-blend-screen animate-blob"></div>
+              <div className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-purple-600/20 blur-[120px] mix-blend-screen animate-blob animation-delay-2000"></div>
+            </div>
+            <p className="text-gray-400 text-xl font-bold z-10">Welcome to AM Clean</p>
           </div>
         )}
 
-        {/* Dynamic Abstract Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          {/* Main animated gradient orbs */}
-          <div className="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-cyan-600/20 blur-[120px] mix-blend-screen animate-blob"></div>
-          <div className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-purple-600/20 blur-[120px] mix-blend-screen animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-blue-600/20 blur-[120px] mix-blend-screen animate-blob animation-delay-4000"></div>
+        {/* Call to Action Buttons */}
+        <div className={`relative z-20 w-full max-w-7xl mx-auto px-4 py-8 sm:py-12 flex justify-center ${hero?.imageUrl ? 'mt-[-20px] sm:mt-[-40px]' : ''}`}>
+          <div className="bg-slate-900/60 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-slate-700/50 shadow-2xl">
 
-          {/* Subtle grid pattern overlay */}
-          <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] bg-repeat"></div>
-        </div>
+            {/* Innovative CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-5 justify-center items-center animate-slideUp" style={{ animationDelay: '200ms' }}>
 
-        {/* Hero Content Container */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex flex-col items-center justify-center pt-28 pb-16 min-h-screen">
-
-          {/* Glassmorphism Content Card */}
-          <div className="w-full max-w-4xl mx-auto backdrop-blur-xl bg-white/[0.02] border border-white/[0.05] rounded-3xl p-8 sm:p-12 md:p-16 shadow-2xl relative overflow-hidden group">
-
-            {/* Shimmer effect on card hover */}
-            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.05] to-transparent group-hover:animate-shimmer pointer-events-none"></div>
-
-            <div className="text-center relative z-20">
-
-              {/* Animated Subtitle Badge */}
-              <div className="mb-8 inline-flex items-center justify-center animate-slideDown shadow-[0_0_20px_rgba(6,182,212,0.2)] rounded-full">
-                <span className="px-5 py-2.5 bg-slate-900/80 border border-cyan-500/30 rounded-full text-cyan-400 text-sm sm:text-base font-bold tracking-wide backdrop-blur-md flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                  {hero?.subtitle || t("professionalCleaning")}
+              {/* Primary Button - Glow Effect */}
+              <a
+                href={hero?.ctaLink || "#contact"}
+                className="relative inline-flex group items-center justify-center w-full sm:w-auto"
+              >
+                <div className="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-full blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
+                <span className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-slate-900 border border-slate-700 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+                  {hero?.ctaText || t("getFreeQuote")}
+                  <svg className="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
                 </span>
-              </div>
+              </a>
 
-              {/* Massive Gradient Title */}
-              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-[1.1] animate-slideUp">
-                <span className="bg-gradient-to-br from-white via-slate-200 to-slate-500 bg-clip-text text-transparent block">
-                  {hero?.title || t("transformYourSpace")}
-                </span>
-              </h1>
+              {/* Secondary Button - Glass effect */}
+              <a
+                href="#projects"
+                className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-slate-300 border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white backdrop-blur-md transition-all duration-300 relative overflow-hidden group text-center"
+              >
+                <span className="relative z-10">{t("viewProjects")}</span>
+              </a>
 
-              {/* Refined Description */}
-              <p className="text-lg sm:text-xl lg:text-2xl text-slate-300 font-light mb-12 max-w-3xl mx-auto leading-relaxed animate-slideUp" style={{ animationDelay: '100ms' }}>
-                {hero?.description || t("heroParagraph")}
-              </p>
-
-              {/* Innovative CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-5 justify-center items-center animate-slideUp" style={{ animationDelay: '200ms' }}>
-
-                {/* Primary Button - Glow Effect */}
-                <a
-                  href={hero?.ctaLink || "#contact"}
-                  className="relative inline-flex group items-center justify-center w-full sm:w-auto"
-                >
-                  <div className="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-full blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
-                  <span className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-slate-900 border border-slate-700 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
-                    {hero?.ctaText || t("getFreeQuote")}
-                    <svg className="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </span>
-                </a>
-
-                {/* Secondary Button - Glass effect */}
-                <a
-                  href="#projects"
-                  className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-slate-300 border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white backdrop-blur-md transition-all duration-300 relative overflow-hidden group text-center"
-                >
-                  <span className="relative z-10">{t("viewProjects")}</span>
-                </a>
-
-              </div>
             </div>
           </div>
-
-          {/* Scroll Down Indicator */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer opacity-50 hover:opacity-100 transition-opacity" onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
-            <div className="w-8 h-12 border-2 border-slate-400 rounded-full flex justify-center p-2">
-              <div className="w-1.5 h-3 bg-cyan-400 rounded-full animate-scrollIndicator"></div>
-            </div>
-          </div>
-
         </div>
       </section>
 
@@ -512,10 +476,10 @@ export default function Home() {
             )}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* About Section */}
-      <section id="about" className="py-24 bg-slate-900 relative">
+      < section id="about" className="py-24 bg-slate-900 relative" >
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <div className="animate-slideDown">
@@ -576,94 +540,96 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Before & After Projects Section */}
-      {media.filter(item => item.isBeforeAfter).length > 0 && (
-        <section className="py-24 bg-gradient-to-b from-purple-900 to-slate-900 relative">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="text-center mb-12 animate-slideDown">
-              <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-                ✨ {t("beforeAfter")}
-              </h2>
-              <p className="text-gray-300 text-lg">See the amazing transformations we've completed</p>
-            </div>
+      {
+        media.filter(item => item.isBeforeAfter).length > 0 && (
+          <section className="py-24 bg-gradient-to-b from-purple-900 to-slate-900 relative">
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="text-center mb-12 animate-slideDown">
+                <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+                  ✨ {t("beforeAfter")}
+                </h2>
+                <p className="text-gray-300 text-lg">See the amazing transformations we've completed</p>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {media.filter(item => item.isBeforeAfter).map((item) => (
-                <div
-                  key={item.id}
-                  className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 border-2 border-purple-500/30 hover:border-purple-400 cursor-pointer bg-black"
-                  onClick={() => setSelectedMedia(item)}
-                >
-                  <div className="relative h-96 flex gap-0">
-                    {/* Before Image */}
-                    {item.beforeImageUrl && (
-                      <div className="flex-1 relative overflow-hidden group">
-                        <img
-                          src={item.beforeImageUrl}
-                          alt="Before"
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent"></div>
-                        <span className="absolute top-3 left-3 px-3 py-1 bg-red-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
-                          BEFORE
-                        </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                {media.filter(item => item.isBeforeAfter).map((item) => (
+                  <div
+                    key={item.id}
+                    className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 border-2 border-purple-500/30 hover:border-purple-400 cursor-pointer bg-black"
+                    onClick={() => setSelectedMedia(item)}
+                  >
+                    <div className="relative h-96 flex gap-0">
+                      {/* Before Image */}
+                      {item.beforeImageUrl && (
+                        <div className="flex-1 relative overflow-hidden group">
+                          <img
+                            src={item.beforeImageUrl}
+                            alt="Before"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent"></div>
+                          <span className="absolute top-3 left-3 px-3 py-1 bg-red-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
+                            BEFORE
+                          </span>
+                        </div>
+                      )}
+
+                      {/* After Image */}
+                      {item.afterImageUrl && (
+                        <div className="flex-1 relative overflow-hidden group">
+                          <img
+                            src={item.afterImageUrl}
+                            alt="After"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent"></div>
+                          <span className="absolute top-3 right-3 px-3 py-1 bg-green-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
+                            AFTER
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Dark Overlay on Hover */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+
+                      {/* Click Icon */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <div className="text-6xl drop-shadow-xl">🔍</div>
                       </div>
-                    )}
+                    </div>
 
-                    {/* After Image */}
-                    {item.afterImageUrl && (
-                      <div className="flex-1 relative overflow-hidden group">
-                        <img
-                          src={item.afterImageUrl}
-                          alt="After"
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent"></div>
-                        <span className="absolute top-3 right-3 px-3 py-1 bg-green-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
-                          AFTER
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Dark Overlay on Hover */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-
-                    {/* Click Icon */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <div className="text-6xl drop-shadow-xl">🔍</div>
+                    {/* Content Area - Bottom */}
+                    <div className="bg-gradient-to-t from-slate-900 to-slate-800 p-4 sm:p-5">
+                      <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-purple-300 transition-colors duration-300 line-clamp-2 mb-1">
+                        {item.title}
+                      </h3>
+                      {item.description && (
+                        <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 mb-2">
+                          {item.description}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400">
+                        {new Date(item.createdAt).toLocaleDateString("fr-FR", {
+                          month: "short",
+                          day: "numeric",
+                          year: "2-digit"
+                        })}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Content Area - Bottom */}
-                  <div className="bg-gradient-to-t from-slate-900 to-slate-800 p-4 sm:p-5">
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-purple-300 transition-colors duration-300 line-clamp-2 mb-1">
-                      {item.title}
-                    </h3>
-                    {item.description && (
-                      <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 mb-2">
-                        {item.description}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-400">
-                      {new Date(item.createdAt).toLocaleDateString("fr-FR", {
-                        month: "short",
-                        day: "numeric",
-                        year: "2-digit"
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )
+      }
 
       {/* Media Gallery Section */}
       <section id="projects" className="py-24 bg-gradient-to-b from-slate-800 to-slate-900 relative">
@@ -1042,6 +1008,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }
