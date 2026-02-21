@@ -393,13 +393,28 @@ export default function AdminDashboard() {
 
     setUploading(true);
     setUploadError("");
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("mediaType", activeTab);
 
     try {
+      // 1. Upload to UploadThing via official client router
+      const { generateReactHelpers } = await import("@uploadthing/react");
+      const { uploadFiles } = generateReactHelpers();
+      const uploadResp = await uploadFiles("mediaUploader", {
+        files: [file],
+      });
+
+      if (!uploadResp || uploadResp.length === 0 || !uploadResp[0].url) {
+        throw new Error("Upload to UploadThing failed");
+      }
+
+      const fileUrl = uploadResp[0].url;
+
+      // 2. Save metadata to our custom DB endpoint
+      const formData = new FormData();
+      formData.append("fileUrl", fileUrl);
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("mediaType", activeTab);
+
       const response = await fetch("/api/media/upload", {
         method: "POST",
         credentials: "include",
@@ -419,14 +434,13 @@ export default function AdminDashboard() {
         setMedia(prev => [uploadedMedia, ...prev]);
 
         // Then re-fetch from database to ensure we show what's actually persisted
-        // Small delay to let the DB write fully propagate
         setTimeout(() => fetchMedia(), 500);
       } else {
         const data = await response.json();
-        setUploadError(data.error || "Upload failed");
+        setUploadError(data.error || "Saving to database failed");
       }
-    } catch (error) {
-      setUploadError("Upload failed. Please try again.");
+    } catch (error: any) {
+      setUploadError(error.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
