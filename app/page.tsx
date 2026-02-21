@@ -355,18 +355,21 @@ export default function Home() {
       </nav>
 
       {/* Innovative Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950">
-        {/* Dynamic Background Image if available - No dark overlays so the text on the image is perfectly legible! */}
+      <section className="relative w-full h-[80vh] md:min-h-screen flex items-end justify-center md:justify-end overflow-hidden bg-slate-950">
+        {/* Dynamic Background Image - Filling the screen */}
         {hero?.imageUrl ? (
-          <div className="w-full relative min-h-[40vh]">
+          <div className="absolute inset-0 z-0">
+            {/* Image centered and covering */}
             <img
               src={hero.imageUrl}
               alt="Hero Banner"
-              className="w-full h-auto max-h-[85vh] object-cover object-top sm:object-center shadow-2xl"
+              className="w-full h-full object-cover object-left md:object-center"
             />
+            {/* Gradient shadow from the bottom for a smooth transition and button readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-90"></div>
           </div>
         ) : (
-          <div className="w-full h-[60vh] bg-slate-900 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center">
             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
               <div className="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-cyan-600/20 blur-[120px] mix-blend-screen animate-blob"></div>
               <div className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-purple-600/20 blur-[120px] mix-blend-screen animate-blob animation-delay-2000"></div>
@@ -375,12 +378,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* Call to Action Buttons */}
-        <div className={`relative z-20 w-full max-w-7xl mx-auto px-4 py-8 sm:py-12 flex justify-center ${hero?.imageUrl ? 'mt-[-20px] sm:mt-[-40px]' : ''}`}>
-          <div className="bg-slate-900/60 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-slate-700/50 shadow-2xl">
-
-            {/* Innovative CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-5 justify-center items-center animate-slideUp" style={{ animationDelay: '200ms' }}>
+        {/* Call to Action Buttons Integrated OVER the image */}
+        <div className="relative z-20 w-full max-w-7xl mx-auto px-4 pb-12 sm:pb-20 md:pb-24 flex justify-center md:justify-end items-end h-full">
+          <div className="bg-slate-900/60 backdrop-blur-xl p-5 sm:p-6 rounded-[2rem] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] md:mr-12 animate-slideUp">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center">
 
               {/* Primary Button - Glow Effect */}
               <a
@@ -388,7 +389,7 @@ export default function Home() {
                 className="relative inline-flex group items-center justify-center w-full sm:w-auto"
               >
                 <div className="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-full blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
-                <span className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-slate-900 border border-slate-700 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+                <span className="relative inline-flex items-center justify-center px-8 py-4 text-base sm:text-lg font-bold text-white transition-all duration-200 bg-slate-950 border border-slate-700/50 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
                   {hero?.ctaText || t("getFreeQuote")}
                   <svg className="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -399,7 +400,7 @@ export default function Home() {
               {/* Secondary Button - Glass effect */}
               <a
                 href="#projects"
-                className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-slate-300 border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white backdrop-blur-md transition-all duration-300 relative overflow-hidden group text-center"
+                className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-base sm:text-lg text-slate-200 border border-white/10 bg-white/5 hover:bg-white/10 backdrop-blur-md transition-all duration-300 relative overflow-hidden group text-center shadow-lg"
               >
                 <span className="relative z-10">{t("viewProjects")}</span>
               </a>
