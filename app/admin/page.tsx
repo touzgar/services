@@ -11,6 +11,7 @@ interface Media {
   description?: string;
   type: string;
   url: string;
+  isBeforeAfter?: boolean;
   beforeImageUrl?: string;
   afterImageUrl?: string;
   createdAt: string;
@@ -52,13 +53,14 @@ export default function AdminDashboard() {
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [mainTab, setMainTab] = useState<"media" | "about" | "hero" | "services">("media");
   const [activeTab, setActiveTab] = useState<"image" | "video">("image");
   const [uploadError, setUploadError] = useState("");
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video">("all");
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  
+
   // About states
   const [about, setAbout] = useState<About | null>(null);
   const [aboutLoading, setAboutLoading] = useState(false);
@@ -107,33 +109,64 @@ export default function AdminDashboard() {
   }, [authLoading, isLoggedIn, router]);
 
   useEffect(() => {
-    fetchMedia();
+    fetchMedia(true); // Pass true for initial load
     fetchAbout();
     fetchHero();
     fetchServices();
   }, []);
 
-  const fetchMedia = async () => {
+  const fetchMedia = async (isInitialLoad = false) => {
     try {
-      const response = await fetch("/api/media?t=" + Date.now());
-      if (response.ok) {
-        const data = await response.json();
-        setMedia(Array.isArray(data) ? data : []);
-      } else {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
+      const response = await fetch(`/api/media?t=${Date.now()}`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        console.error("[fetchMedia] HTTP error:", response.status);
+        if (isInitialLoad) {
+          setMedia([]);
+        }
+        return;
+      }
+
+      const rawData = await response.json();
+
+      // Handle various response formats
+      let data = rawData;
+
+      // If wrapped in {media: []}, unwrap it
+      if (data && typeof data === "object" && !Array.isArray(data) && data.media) {
+        data = data.media;
+      }
+
+      // Ensure we have an array
+      if (!Array.isArray(data)) {
+        data = [];
+      }
+
+      setMedia(data);
+
+    } catch (error) {
+      console.error("[fetchMedia] Exception:", error);
+      if (isInitialLoad) {
         setMedia([]);
       }
-    } catch (error) {
-      console.error("Failed to fetch media:", error);
-      setMedia([]);
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+        setInitialLoadDone(true);
+      }
     }
   };
 
   const fetchAbout = async () => {
     try {
       setAboutLoading(true);
-      const response = await fetch("/api/about?t=" + Date.now());
+      const response = await fetch("/api/about");
       if (response.ok) {
         const data = await response.json();
         setAbout(data);
@@ -157,9 +190,10 @@ export default function AdminDashboard() {
     try {
       setAboutError("");
       setAboutSuccess("");
-      
+
       const response = await fetch("/api/about", {
         method: "PUT",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(aboutData),
       });
@@ -183,7 +217,13 @@ export default function AdminDashboard() {
   const fetchHero = async () => {
     try {
       setHeroLoading(true);
-      const response = await fetch("/api/hero?t=" + Date.now());
+      const response = await fetch(`/api/hero?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setHero(data);
@@ -206,9 +246,10 @@ export default function AdminDashboard() {
     try {
       setHeroError("");
       setHeroSuccess("");
-      
+
       const response = await fetch("/api/hero", {
         method: "PUT",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(heroData),
       });
@@ -218,6 +259,10 @@ export default function AdminDashboard() {
         setHero(updatedHero);
         setHeroSuccess("✅ Hero section updated successfully!");
         setHeroEditing(false);
+        // Broadcast update to trigger landing page refresh
+        window.dispatchEvent(new CustomEvent('heroSectionUpdated', { detail: updatedHero }));
+        // Refresh to ensure consistency
+        setTimeout(() => fetchHero(), 300);
         setTimeout(() => setHeroSuccess(""), 3000);
       } else {
         const error = await response.json();
@@ -232,7 +277,7 @@ export default function AdminDashboard() {
   const fetchServices = async () => {
     try {
       setServicesLoading(true);
-      const response = await fetch("/api/services?t=" + Date.now());
+      const response = await fetch("/api/services");
       if (response.ok) {
         const data = await response.json();
         setServices(Array.isArray(data) ? data : []);
@@ -257,6 +302,7 @@ export default function AdminDashboard() {
 
       const response = await fetch("/api/services", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newService),
       });
@@ -328,6 +374,7 @@ export default function AdminDashboard() {
 
       const response = await fetch("/api/services", {
         method: "DELETE",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: serviceId }),
       });
@@ -360,23 +407,38 @@ export default function AdminDashboard() {
     formData.append("mediaType", activeTab);
 
     try {
+      console.log("[handleUpload] Starting upload for:", title);
       const response = await fetch("/api/media/upload", {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
 
+      console.log("[handleUpload] Response status:", response.status);
+
       if (response.ok) {
+        const uploadedMedia = await response.json();
+        console.log("[handleUpload] Successfully uploaded:", uploadedMedia);
+
+        // Reset form
         setTitle("");
         setDescription("");
         setFile(null);
         setUploadError("");
-        await fetchMedia();
+
+        // Add to gallery immediately for instant visual feedback
+        setMedia(prev => [uploadedMedia, ...prev]);
+
+        // Then re-fetch from database to ensure we show what's actually persisted
+        // Small delay to let the DB write fully propagate
+        setTimeout(() => fetchMedia(), 500);
       } else {
         const data = await response.json();
+        console.error("[handleUpload] Upload failed:", data);
         setUploadError(data.error || "Upload failed");
       }
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("[handleUpload] Upload exception:", error);
       setUploadError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
@@ -391,6 +453,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch(`/api/media/${mediaId}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -431,7 +494,7 @@ export default function AdminDashboard() {
             <div className="text-center space-y-6">
               {/* Warning Icon */}
               <div className="text-6xl animate-bounce">⚠️</div>
-              
+
               <div>
                 <h3 className="text-2xl font-black text-white mb-2">Delete Media?</h3>
                 <p className="text-gray-300">This action cannot be undone. Are you absolutely sure?</p>
@@ -458,7 +521,7 @@ export default function AdminDashboard() {
       )}
       {/* Media Lightbox Modal */}
       {selectedMedia && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg z-[50] flex items-center justify-center p-4" onClick={() => setSelectedMedia(null)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg z-[100] flex items-center justify-center p-4" onClick={() => setSelectedMedia(null)}>
           <div className="relative bg-slate-800 rounded-3xl overflow-hidden shadow-2xl shadow-cyan-500/40 max-w-4xl w-full max-h-[90vh] flex flex-col animate-scaleIn" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
@@ -564,7 +627,7 @@ export default function AdminDashboard() {
               <span className="relative hidden sm:inline group-hover:translate-x-1 transition duration-300">Logout</span>
             </button>
           </div>
-          
+
           {/* Info Bar - Shows current section */}
           <div className="hidden md:flex items-center gap-2 text-xs text-gray-400 px-2">
             <span>📊</span>
@@ -580,42 +643,50 @@ export default function AdminDashboard() {
         {/* Main Tab Navigation */}
         <div className="flex gap-1 sm:gap-2 md:gap-4 mb-6 sm:mb-8 border-b border-slate-600 pb-3 sm:pb-4 overflow-x-auto sticky top-14 md:top-20 z-40 bg-slate-900 -mx-4 px-3 sm:px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
           <button
-            onClick={() => setMainTab("media")}
-            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
-              mainTab === "media"
-                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
-                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
-            }`}
+            onClick={() => {
+              setMainTab("media");
+              setGalleryFilter("all");
+            }}
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${mainTab === "media"
+              ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
+              : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+              }`}
           >
             🖼️ <span className="hidden sm:inline">Media</span>
           </button>
           <button
-            onClick={() => setMainTab("about")}
-            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
-              mainTab === "about"
-                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50"
-                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
-            }`}
+            onClick={() => {
+              setMainTab("about");
+              setGalleryFilter("all");
+            }}
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${mainTab === "about"
+              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50"
+              : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+              }`}
           >
             ℹ️ <span className="hidden sm:inline">About</span>
           </button>
           <button
-            onClick={() => setMainTab("hero")}
-            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
-              mainTab === "hero"
-                ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/50"
-                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
-            }`}
+            onClick={() => {
+              setMainTab("hero");
+              setGalleryFilter("all");
+            }}
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${mainTab === "hero"
+              ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/50"
+              : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+              }`}
           >
             🎬 <span className="hidden sm:inline">Hero</span>
           </button>
           <button
-            onClick={() => setMainTab("services")}
-            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${
-              mainTab === "services"
-                ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50"
-                : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
-            }`}
+            onClick={() => {
+              setMainTab("services");
+              setGalleryFilter("all");
+            }}
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition transform whitespace-nowrap text-xs sm:text-sm md:text-base ${mainTab === "services"
+              ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50"
+              : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+              }`}
           >
             ⭐ <span className="hidden sm:inline">Services</span>
           </button>
@@ -623,262 +694,256 @@ export default function AdminDashboard() {
 
         {mainTab === "media" ? (
           <>
-        {/* Upload Section - Tabbed Interface */}
-        <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-cyan-500/10 p-6 sm:p-8 lg:p-10 mb-10 sm:mb-12 border border-slate-600 overflow-hidden">
-          <h2 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-6 sm:mb-8">
-            🚀 Upload Media
-          </h2>
+            {/* Upload Section - Tabbed Interface */}
+            <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-cyan-500/10 p-6 sm:p-8 lg:p-10 mb-10 sm:mb-12 border border-slate-600 overflow-hidden">
+              <h2 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-6 sm:mb-8">
+                🚀 Upload Media
+              </h2>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-2 sm:gap-4 mb-6 sm:mb-8 border-b border-slate-600 pb-4 overflow-x-auto">
-            <button
-              onClick={() => {
-                setActiveTab("image");
-                setFile(null);
-                setUploadError("");
-              }}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${
-                activeTab === "image"
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
-                  : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
-              }`}
-            >
-              🖼️ Image
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("video");
-                setFile(null);
-                setUploadError("");
-              }}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${
-                activeTab === "video"
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50"
-                  : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
-              }`}
-            >
-              🎬 Video
-            </button>
-          </div>
-
-          {/* Upload Form */}
-          <form onSubmit={handleUpload} className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
-                  📝 Title *
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
-                  placeholder={activeTab === "image" ? "e.g., Kitchen Cleaning" : "e.g., Cleaning Process"}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
-                  📄 Description
-                </label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
-                  placeholder="Add details about this content..."
-                />
-              </div>
-            </div>
-
-            {/* File Upload Area */}
-            <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-3 sm:mb-4">
-                {activeTab === "image" ? "🖼️ Select Image" : "🎬 Select Video"} *
-              </label>
-              <div className={`relative border-4 border-dashed rounded-xl p-6 sm:p-8 lg:p-12 text-center transition cursor-pointer ${
-                activeTab === "image"
-                  ? "border-cyan-500/50 hover:border-cyan-500 bg-slate-700/30 hover:bg-slate-700/50"
-                  : "border-purple-500/50 hover:border-purple-500 bg-slate-700/30 hover:bg-slate-700/50"
-              }`}>
-                <input
-                  type="file"
-                  accept={activeTab === "image" ? "image/*" : "video/*"}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setFile(e.currentTarget.files?.[0] || null);
+              {/* Tab Navigation */}
+              <div className="flex gap-2 sm:gap-4 mb-6 sm:mb-8 border-b border-slate-600 pb-4 overflow-x-auto">
+                <button
+                  onClick={() => {
+                    setActiveTab("image");
+                    setFile(null);
                     setUploadError("");
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  required
-                />
-                <div className="pointer-events-none">
-                  {!file ? (
-                    <>
-                      <div className={`text-4xl sm:text-5xl lg:text-6xl mb-4 ${
-                        activeTab === "image" ? "text-cyan-400" : "text-purple-400"
-                      }`}>
-                        {activeTab === "image" ? "🖼️" : "🎬"}
-                      </div>
-                      <p className="text-base sm:text-lg font-semibold text-gray-200 mb-2">
-                        {activeTab === "image" ? "Drag and drop your image" : "Drag and drop your video"}
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-400">
-                        {activeTab === "image" ? "or click to select" : "or click to select"}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-4xl sm:text-5xl mb-3">✅</div>
-                      <p className="text-cyan-400 font-semibold text-sm sm:text-base break-all">{file.name}</p>
-                      <p className="text-gray-400 text-xs sm:text-sm mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {uploadError && (
-              <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4">
-                <p className="text-red-200 font-semibold text-sm sm:text-base">❌ {uploadError}</p>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={uploading || !file}
-              className={`w-full font-bold py-3 sm:py-4 px-4 rounded-lg transition transform text-white text-base sm:text-lg ${
-                activeTab === "image"
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/50 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-                  : "bg-gradient-to-r from-purple-500 to-pink-600 hover:shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-              }`}
-            >
-              {uploading ? `⏳ Uploading...` : `📤 Upload`}
-            </button>
-          </form>
-        </div>
-
-        {/* Gallery Section */}
-        <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-cyan-500/10 p-6 sm:p-10 border border-slate-600">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">🖼️ Media Gallery</h2>
-            {/* Filter Buttons */}
-            <div className="flex gap-2 sm:gap-3 flex-wrap">
-              <button
-                onClick={() => setGalleryFilter("all")}
-                className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition text-sm sm:text-base ${galleryFilter === "all" ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50" : "bg-slate-700 text-gray-300 hover:text-white"}`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setGalleryFilter("image")}
-                className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition text-sm sm:text-base ${galleryFilter === "image" ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50" : "bg-slate-700 text-gray-300 hover:text-white"}`}
-              >
-                🖼️ Images
-              </button>
-              <button
-                onClick={() => setGalleryFilter("video")}
-                className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition text-sm sm:text-base ${galleryFilter === "video" ? "bg-purple-500 text-white shadow-lg shadow-purple-500/50" : "bg-slate-700 text-gray-300 hover:text-white"}`}
-              >
-                🎬 Videos
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">⏳ Loading media...</p>
-            </div>
-          ) : media.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">📭 No media uploaded yet. Upload your first image or video!</p>
-            </div>
-          ) : media.filter(item => galleryFilter === "all" || item.type === galleryFilter).length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">📭 No {galleryFilter}s found</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {media.filter(item => galleryFilter === "all" || item.type === galleryFilter).map((item) => (
-                <div 
-                  key={item.id} 
-                  className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300 border border-slate-600 hover:border-cyan-500"
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${activeTab === "image"
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
+                    : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+                    }`}
                 >
-                  {/* Background Image/Video */}
-                  <div className="relative h-64 sm:h-72 lg:h-80 bg-slate-700 cursor-pointer overflow-hidden" onClick={() => setSelectedMedia(item)}>
-                    {item.type === "image" ? (
-                      <img
-                        src={item.url}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                      />
-                    ) : (
-                      <video
-                        src={item.url}
-                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                        onMouseEnter={(e) => e.currentTarget.play()}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.pause();
-                          e.currentTarget.currentTime = 0;
-                        }}
-                      />
-                    )}
+                  🖼️ Image
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("video");
+                    setFile(null);
+                    setUploadError("");
+                  }}
+                  className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-bold transition transform whitespace-nowrap text-sm sm:text-base ${activeTab === "video"
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50"
+                    : "bg-slate-700/50 text-gray-300 hover:text-white hover:bg-slate-600"
+                    }`}
+                >
+                  🎬 Video
+                </button>
+              </div>
 
-                    {/* Dark Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-60 group-hover:opacity-40 transition duration-300"></div>
-
-                    {/* Type Badge */}
-                    <div className="absolute top-3 right-3 z-20">
-                      <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold text-white backdrop-blur-md border ${
-                        item.type === "image" 
-                          ? "bg-cyan-500/40 border-cyan-500/60" 
-                          : "bg-purple-500/40 border-purple-500/60"
-                      }`}>
-                        {item.type === "image" ? "🖼️" : "🎬"}
-                      </span>
-                    </div>
-
-                    {/* Play Icon for Videos */}
-                    {item.type === "video" && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 z-15">
-                        <div className="text-5xl sm:text-6xl drop-shadow-lg animate-pulse">▶️</div>
-                      </div>
-                    )}
+              {/* Upload Form */}
+              <form onSubmit={handleUpload} className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                      📝 Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
+                      placeholder={activeTab === "image" ? "e.g., Kitchen Cleaning" : "e.g., Cleaning Process"}
+                      required
+                    />
                   </div>
-
-                  {/* Content Section */}
-                  <div className="bg-gradient-to-b from-slate-700 to-slate-800 p-4 sm:p-5">
-                    <h3 className="font-bold text-white text-base sm:text-lg mb-1 line-clamp-2 group-hover:text-cyan-300 transition">{item.title}</h3>
-                    <p className="text-gray-400 text-xs sm:text-sm line-clamp-2 mb-3">{item.description || "No description"}</p>
-                    <p className="text-xs text-gray-500 mb-4">{new Date(item.createdAt).toLocaleDateString()}</p>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 sm:gap-3">
-                      <button
-                        onClick={() => setSelectedMedia(item)}
-                        className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold py-2 px-3 rounded-lg transition transform hover:scale-105 text-xs sm:text-sm shadow-lg hover:shadow-cyan-500/50"
-                      >
-                        👁️ View
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition transform hover:scale-105 text-xs sm:text-sm shadow-lg hover:shadow-red-500/50"
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Stats Bar */}
-                  <div className="hidden sm:flex absolute bottom-0 left-0 right-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-sm px-4 py-2 gap-4 text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition duration-300">
-                    <span>📅 {new Date(item.createdAt).toLocaleDateString()}</span>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                      📄 Description
+                    </label>
+                    <input
+                      type="text"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
+                      placeholder="Add details about this content..."
+                    />
                   </div>
                 </div>
-              ))}
+
+                {/* File Upload Area */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-3 sm:mb-4">
+                    {activeTab === "image" ? "🖼️ Select Image" : "🎬 Select Video"} *
+                  </label>
+                  <div className={`relative border-4 border-dashed rounded-xl p-6 sm:p-8 lg:p-12 text-center transition cursor-pointer ${activeTab === "image"
+                    ? "border-cyan-500/50 hover:border-cyan-500 bg-slate-700/30 hover:bg-slate-700/50"
+                    : "border-purple-500/50 hover:border-purple-500 bg-slate-700/30 hover:bg-slate-700/50"
+                    }`}>
+                    <input
+                      type="file"
+                      accept={activeTab === "image" ? "image/*" : "video/*"}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setFile(e.currentTarget.files?.[0] || null);
+                        setUploadError("");
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      required
+                    />
+                    <div className="pointer-events-none">
+                      {!file ? (
+                        <>
+                          <div className={`text-4xl sm:text-5xl lg:text-6xl mb-4 ${activeTab === "image" ? "text-cyan-400" : "text-purple-400"
+                            }`}>
+                            {activeTab === "image" ? "🖼️" : "🎬"}
+                          </div>
+                          <p className="text-base sm:text-lg font-semibold text-gray-200 mb-2">
+                            {activeTab === "image" ? "Drag and drop your image" : "Drag and drop your video"}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-400">
+                            {activeTab === "image" ? "or click to select" : "or click to select"}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-4xl sm:text-5xl mb-3">✅</div>
+                          <p className="text-cyan-400 font-semibold text-sm sm:text-base break-all">{file.name}</p>
+                          <p className="text-gray-400 text-xs sm:text-sm mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                {uploadError && (
+                  <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4">
+                    <p className="text-red-200 font-semibold text-sm sm:text-base">❌ {uploadError}</p>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={uploading || !file}
+                  className={`w-full font-bold py-3 sm:py-4 px-4 rounded-lg transition transform text-white text-base sm:text-lg ${activeTab === "image"
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/50 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                    : "bg-gradient-to-r from-purple-500 to-pink-600 hover:shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                    }`}
+                >
+                  {uploading ? `⏳ Uploading...` : `📤 Upload`}
+                </button>
+              </form>
             </div>
-          )}
-        </div>
+
+            {/* Gallery Section */}
+            <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl shadow-2xl shadow-cyan-500/10 p-6 sm:p-10 border border-slate-600">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">🖼️ Media Gallery</h2>
+                {/* Filter Buttons */}
+                <div className="flex gap-2 sm:gap-3 flex-wrap">
+                  <button
+                    onClick={() => setGalleryFilter("all")}
+                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition text-sm sm:text-base ${galleryFilter === "all" ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50" : "bg-slate-700 text-gray-300 hover:text-white"}`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setGalleryFilter("image")}
+                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition text-sm sm:text-base ${galleryFilter === "image" ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50" : "bg-slate-700 text-gray-300 hover:text-white"}`}
+                  >
+                    🖼️ Images
+                  </button>
+                  <button
+                    onClick={() => setGalleryFilter("video")}
+                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition text-sm sm:text-base ${galleryFilter === "video" ? "bg-purple-500 text-white shadow-lg shadow-purple-500/50" : "bg-slate-700 text-gray-300 hover:text-white"}`}
+                  >
+                    🎬 Videos
+                  </button>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 text-lg">⏳ Loading media...</p>
+                </div>
+              ) : media.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 text-lg">📭 No media uploaded yet. Upload your first image or video!</p>
+                </div>
+              ) : media.filter(item => galleryFilter === "all" || item.type === galleryFilter).length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 text-lg">📭 No {galleryFilter}s found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                  {media.filter(item => galleryFilter === "all" || item.type === galleryFilter).map((item) => (
+                    <div
+                      key={item.id}
+                      className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300 border border-slate-600 hover:border-cyan-500"
+                    >
+                      {/* Background Image/Video */}
+                      <div className="relative h-64 sm:h-72 lg:h-80 bg-slate-700 cursor-pointer overflow-hidden" onClick={() => setSelectedMedia(item)}>
+                        {item.type === "image" ? (
+                          <img
+                            src={item.url}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                          />
+                        ) : (
+                          <video
+                            src={item.url}
+                            className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                            onMouseEnter={(e) => e.currentTarget.play()}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.pause();
+                              e.currentTarget.currentTime = 0;
+                            }}
+                          />
+                        )}
+
+                        {/* Dark Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-60 group-hover:opacity-40 transition duration-300"></div>
+
+                        {/* Type Badge */}
+                        <div className="absolute top-3 right-3 z-20">
+                          <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold text-white backdrop-blur-md border ${item.type === "image"
+                            ? "bg-cyan-500/40 border-cyan-500/60"
+                            : "bg-purple-500/40 border-purple-500/60"
+                            }`}>
+                            {item.type === "image" ? "🖼️" : "🎬"}
+                          </span>
+                        </div>
+
+                        {/* Play Icon for Videos */}
+                        {item.type === "video" && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 z-15">
+                            <div className="text-5xl sm:text-6xl drop-shadow-lg animate-pulse">▶️</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content Section */}
+                      <div className="bg-gradient-to-b from-slate-700 to-slate-800 p-4 sm:p-5">
+                        <h3 className="font-bold text-white text-base sm:text-lg mb-1 line-clamp-2 group-hover:text-cyan-300 transition">{item.title}</h3>
+                        <p className="text-gray-400 text-xs sm:text-sm line-clamp-2 mb-3">{item.description || "No description"}</p>
+                        <p className="text-xs text-gray-500 mb-4">{new Date(item.createdAt).toLocaleDateString()}</p>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 sm:gap-3">
+                          <button
+                            onClick={() => setSelectedMedia(item)}
+                            className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold py-2 px-3 rounded-lg transition transform hover:scale-105 text-xs sm:text-sm shadow-lg hover:shadow-cyan-500/50"
+                          >
+                            👁️ View
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition transform hover:scale-105 text-xs sm:text-sm shadow-lg hover:shadow-red-500/50"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Stats Bar */}
+                      <div className="hidden sm:flex absolute bottom-0 left-0 right-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-sm px-4 py-2 gap-4 text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition duration-300">
+                        <span>📅 {new Date(item.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         ) : mainTab === "about" ? (
           // About & Contact Section
@@ -1106,7 +1171,7 @@ export default function AdminDashboard() {
                     value={heroData.title}
                     onChange={(e) => setHeroData({ ...heroData, title: e.target.value })}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
-                    placeholder="e.g., Professional Cleaning Services"
+                    placeholder="ex., Services de nettoyage professionnels"
                   />
                 </div>
 
@@ -1119,7 +1184,7 @@ export default function AdminDashboard() {
                     value={heroData.subtitle}
                     onChange={(e) => setHeroData({ ...heroData, subtitle: e.target.value })}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
-                    placeholder="e.g., Trusted & Eco-Friendly"
+                    placeholder="ex., Fiable et écologique"
                   />
                 </div>
 
@@ -1131,7 +1196,7 @@ export default function AdminDashboard() {
                     value={heroData.description}
                     onChange={(e) => setHeroData({ ...heroData, description: e.target.value })}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base resize-none h-20 sm:h-24"
-                    placeholder="Describe your cleaning services..."
+                    placeholder="Décrivez vos services de nettoyage..."
                   />
                 </div>
 
@@ -1145,7 +1210,7 @@ export default function AdminDashboard() {
                       value={heroData.ctaText}
                       onChange={(e) => setHeroData({ ...heroData, ctaText: e.target.value })}
                       className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
-                      placeholder="e.g., Get Started"
+                      placeholder="e.g., Commencer"
                     />
                   </div>
 
@@ -1158,7 +1223,7 @@ export default function AdminDashboard() {
                       value={heroData.ctaLink}
                       onChange={(e) => setHeroData({ ...heroData, ctaLink: e.target.value })}
                       className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition text-sm sm:text-base"
-                      placeholder="e.g., #contact or /services"
+                      placeholder="e.g., #contact ou /services"
                     />
                   </div>
                 </div>
@@ -1412,7 +1477,7 @@ export default function AdminDashboard() {
           <div className="bg-gradient-to-br from-red-900/50 to-red-800/30 rounded-3xl p-8 border-2 border-red-500 shadow-2xl shadow-red-500/30 max-w-sm mx-auto animate-scaleIn">
             <div className="text-center space-y-6">
               <div className="text-6xl animate-bounce">⚠️</div>
-              
+
               <div>
                 <h3 className="text-2xl font-black text-white mb-2">Delete Service?</h3>
                 <p className="text-gray-300">This action cannot be undone. Are you absolutely sure?</p>

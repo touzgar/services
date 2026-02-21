@@ -11,11 +11,12 @@ export function useAuth() {
         const response = await fetch("/api/auth/check", {
           credentials: "include",
         });
-        
+
         // 200 = logged in, 401 = not logged in (both are valid responses)
-        if (response.status === 200) {
-          setIsLoggedIn(true);
-        } else if (response.status === 401) {
+        if (response.ok) {
+          const data = await response.json();
+          setIsLoggedIn(data.authenticated);
+        } else {
           setIsLoggedIn(false);
         }
       } catch (error) {
@@ -32,7 +33,7 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { 
+      await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });

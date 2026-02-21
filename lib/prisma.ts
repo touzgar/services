@@ -1,11 +1,28 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+// Prevent multiple instances during hot-reload in development
+declare global {
+  var prisma: PrismaClient | undefined;
+}
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ["error"],
+// Production-safe Prisma singleton pattern
+const createPrismaClient = (): PrismaClient => {
+  return new PrismaClient({
+    // Logging configuration - minimal in production
+    log:
+      process.env.NODE_ENV === "production"
+        ? ["error"]
+        : ["error", "warn"],
+    errorFormat: "pretty",
   });
+};
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Reuse client if already instantiated (prevents connection leaks on hot-reload)
+export const prisma =
+  globalThis.prisma ??
+  createPrismaClient();
+
+// Ensure singleton pattern in development
+if (process.env.NODE_ENV !== "production") {
+  globalThis.prisma = prisma;
+}

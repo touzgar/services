@@ -1,31 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withDatabase, buildErrorResponse } from "@/lib/db";
+
+// Force dynamic rendering to prevent stale cached responses
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // GET - Fetch hero section
 export async function GET() {
   try {
-    let hero = await prisma.heroSection.findFirst();
+    const hero = await withDatabase(async () => {
+      let record = await prisma.heroSection.findFirst();
 
-    // If no record exists, create default one
-    if (!hero) {
-      hero = await prisma.heroSection.create({
-        data: {
-          title: "Professional Cleaning Services",
-          subtitle: "Transform Your Space",
-          description: "Experience pristine cleanliness with eco-friendly solutions",
-          ctaText: "Get Started",
-          ctaLink: "#contact",
-        },
-      });
-    }
+      // If no record exists, create default one
+      if (!record) {
+        record = await prisma.heroSection.create({
+          data: {
+            title: "Services de Nettoyage Professionnels",
+            subtitle: "Transformez Votre Espace",
+            description: "Découvrez une propreté impeccable avec des solutions écologiques",
+            ctaText: "Commencer",
+            ctaLink: "#contact",
+          },
+        });
+      }
 
-    return NextResponse.json(hero);
+      return record;
+    }, "GET /api/hero");
+
+    const response = NextResponse.json(hero);
+    // Prevent caching so fresh data is always returned
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    response.headers.set("Pragma", "no-cache");
+    return response;
   } catch (error) {
-    console.error("Error fetching hero:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch hero section" },
-      { status: 500 }
-    );
+    const { message, status } = buildErrorResponse(error, "Failed to fetch hero section");
+    console.error("[GET /api/hero]", message);
+    const response = NextResponse.json({ error: message }, { status });
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    return response;
   }
 }
 
@@ -34,37 +47,39 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
 
-    let hero = await prisma.heroSection.findFirst();
+    const hero = await withDatabase(async () => {
+      let record = await prisma.heroSection.findFirst();
 
-    if (!hero) {
-      hero = await prisma.heroSection.create({
-        data: {
-          title: body.title || "",
-          subtitle: body.subtitle || "",
-          description: body.description || "",
-          ctaText: body.ctaText || "Get Started",
-          ctaLink: body.ctaLink || "#contact",
-        },
-      });
-    } else {
-      hero = await prisma.heroSection.update({
-        where: { id: hero.id },
-        data: {
-          title: body.title !== undefined ? body.title : hero.title,
-          subtitle: body.subtitle !== undefined ? body.subtitle : hero.subtitle,
-          description: body.description !== undefined ? body.description : hero.description,
-          ctaText: body.ctaText !== undefined ? body.ctaText : hero.ctaText,
-          ctaLink: body.ctaLink !== undefined ? body.ctaLink : hero.ctaLink,
-        },
-      });
-    }
+      if (!record) {
+        record = await prisma.heroSection.create({
+          data: {
+            title: body.title || "",
+            subtitle: body.subtitle || "",
+            description: body.description || "",
+            ctaText: body.ctaText || "Get Started",
+            ctaLink: body.ctaLink || "#contact",
+          },
+        });
+      } else {
+        record = await prisma.heroSection.update({
+          where: { id: record.id },
+          data: {
+            title: body.title !== undefined ? body.title : record.title,
+            subtitle: body.subtitle !== undefined ? body.subtitle : record.subtitle,
+            description: body.description !== undefined ? body.description : record.description,
+            ctaText: body.ctaText !== undefined ? body.ctaText : record.ctaText,
+            ctaLink: body.ctaLink !== undefined ? body.ctaLink : record.ctaLink,
+          },
+        });
+      }
+
+      return record;
+    }, "PUT /api/hero");
 
     return NextResponse.json(hero);
   } catch (error) {
-    console.error("Error updating hero:", error);
-    return NextResponse.json(
-      { error: "Failed to update hero section" },
-      { status: 500 }
-    );
+    const { message, status } = buildErrorResponse(error, "Failed to update hero section");
+    console.error("[PUT /api/hero]", message);
+    return NextResponse.json({ error: message }, { status });
   }
 }

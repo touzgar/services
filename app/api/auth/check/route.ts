@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     const userId = request.cookies.get("user_id")?.value;
-    
+
     if (!userId) {
       return NextResponse.json(
         { authenticated: false },
-        { status: 401 }
+        { status: 200 }
       );
     }
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { authenticated: false },
-      { status: 401 }
+      { status: 200 }
     );
   }
 }

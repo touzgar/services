@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withDatabase, buildErrorResponse } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
@@ -13,9 +14,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
-    });
+    const user = await withDatabase(async () => {
+      return await prisma.user.findUnique({
+        where: { username },
+      });
+    }, "POST /api/auth/login - Find user");
 
     if (!user) {
       return NextResponse.json(
@@ -52,10 +55,8 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const { message, status } = buildErrorResponse(error, "Internal server error");
+    console.error("[POST /api/auth/login]", message);
+    return NextResponse.json({ error: message }, { status });
   }
 }

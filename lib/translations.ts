@@ -37,6 +37,7 @@ export const translations = {
     guaranteedResultsDesc: "100% satisfaction guarantee on all services",
 
     // Projects/Gallery Section
+    beforeAfter: "Before & After Projects",
     mediaGallery: "Media Gallery",
     gallerySubtitle: "See the incredible transformations we deliver",
     all: "All Media",
@@ -141,6 +142,7 @@ export const translations = {
     guaranteedResultsDesc: "Satisfaction 100% garantie sur tous les services",
 
     // Projects/Gallery Section
+    beforeAfter: "Projets Avant & Après",
     mediaGallery: "Galerie Média",
     gallerySubtitle: "Découvrez les transformations incroyables que nous livrons",
     all: "Tous les Médias",

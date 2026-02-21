@@ -12,6 +12,9 @@ interface Media {
   description?: string;
   type: string;
   url: string;
+  isBeforeAfter?: boolean;
+  beforeImageUrl?: string;
+  afterImageUrl?: string;
   createdAt: string;
 }
 
@@ -67,21 +70,34 @@ export default function Home() {
     fetchHero();
     fetchServices();
 
-    // Poll for data updates every 3 seconds
-    const aboutInterval = setInterval(fetchAbout, 3000);
-    const heroInterval = setInterval(fetchHero, 3000);
-    const servicesInterval = setInterval(fetchServices, 3000);
+    // Refresh media every 10 seconds to show new uploads in real-time
+    const mediaInterval = setInterval(() => {
+      fetchMedia();
+    }, 10000);
+
+    // Listen for hero section updates from admin panel
+    const handleHeroUpdate = () => {
+      console.log("Hero section updated - refreshing...");
+      fetchHero();
+    };
+
+    window.addEventListener('heroSectionUpdated', handleHeroUpdate);
 
     return () => {
-      clearInterval(aboutInterval);
-      clearInterval(heroInterval);
-      clearInterval(servicesInterval);
+      clearInterval(mediaInterval);
+      window.removeEventListener('heroSectionUpdated', handleHeroUpdate);
     };
   }, []);
 
   const fetchMedia = async () => {
     try {
-      const response = await fetch("/api/media?t=" + Date.now());
+      const response = await fetch(`/api/media?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setMedia(Array.isArray(data) ? data : []);
@@ -96,7 +112,7 @@ export default function Home() {
 
   const fetchAbout = async () => {
     try {
-      const response = await fetch("/api/about?t=" + Date.now());
+      const response = await fetch("/api/about");
       if (response.ok) {
         const data = await response.json();
         setAbout(data);
@@ -108,7 +124,8 @@ export default function Home() {
 
   const fetchHero = async () => {
     try {
-      const response = await fetch("/api/hero?t=" + Date.now());
+      // Add cache busting to force fresh data
+      const response = await fetch(`/api/hero?t=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
         setHero(data);
@@ -120,7 +137,7 @@ export default function Home() {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch("/api/services?t=" + Date.now());
+      const response = await fetch("/api/services");
       if (response.ok) {
         const data = await response.json();
         setServices(Array.isArray(data) ? data : []);
@@ -163,8 +180,8 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       {/* Media Lightbox Modal */}
       {selectedMedia && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-4" onClick={() => setSelectedMedia(null)}>
-          <div className="relative bg-slate-800 rounded-3xl overflow-hidden shadow-2xl shadow-cyan-500/40 max-w-4xl w-full max-h-[90vh] flex flex-col animate-scaleIn" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4 transition-all duration-300" onClick={() => setSelectedMedia(null)}>
+          <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.3)] border border-slate-700/50 max-w-5xl w-full max-h-[90vh] flex flex-col md:flex-row animate-scaleIn" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
               onClick={() => setSelectedMedia(null)}
@@ -214,7 +231,7 @@ export default function Home() {
           <div className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 bg-clip-text text-transparent whitespace-nowrap">
             AM Clean
           </div>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-4 lg:space-x-8 items-center">
             <a href="#services" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
@@ -229,7 +246,7 @@ export default function Home() {
             <a href="#contact" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
               {t("contact")}
             </a>
-            
+
             {/* Dynamic Auth Buttons */}
             {!isLoading && (
               <div className="flex items-center gap-3">
@@ -275,29 +292,29 @@ export default function Home() {
         {mobileMenuOpen && (
           <div className="md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 animate-slideDown">
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-3">
-              <a 
-                href="#services" 
+              <a
+                href="#services"
                 className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t("services")}
               </a>
-              <a 
-                href="#about" 
+              <a
+                href="#about"
                 className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t("about")}
               </a>
-              <a 
-                href="#projects" 
+              <a
+                href="#projects"
                 className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t("projects")}
               </a>
-              <a 
-                href="#contact" 
+              <a
+                href="#contact"
                 className="block text-gray-700 hover:text-cyan-600 transition font-medium py-2 px-4 rounded-lg hover:bg-gray-100"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -342,50 +359,91 @@ export default function Home() {
         )}
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 right-10 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-          <div className="absolute -bottom-8 left-20 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{animationDelay: "2s"}}></div>
-          <div className="absolute top-1/2 left-1/2 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{animationDelay: "4s"}}></div>
+      {/* Innovative Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950">
+        {/* Dynamic Abstract Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Main animated gradient orbs */}
+          <div className="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-cyan-600/20 blur-[120px] mix-blend-screen animate-blob"></div>
+          <div className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-purple-600/20 blur-[120px] mix-blend-screen animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-blue-600/20 blur-[120px] mix-blend-screen animate-blob animation-delay-4000"></div>
+
+          {/* Subtle grid pattern overlay */}
+          <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] bg-repeat"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen flex items-center justify-center pt-20 sm:pt-24 lg:pt-0">
-          <div className="text-center w-full">
-            <div className="mb-6 inline-block animate-slideDown">
-              <span className="px-3 sm:px-4 py-2 bg-cyan-500/20 border border-cyan-500/50 rounded-full text-cyan-300 text-xs sm:text-sm font-semibold backdrop-blur-sm">
-                {hero?.subtitle || t("professionalCleaning")}
-              </span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl xl:text-8xl font-black mb-4 sm:mb-6 leading-tight animate-slideDown">
-              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent block">
-                {hero?.title || t("transformYourSpace")}
-              </span>
-            </h1>
-            <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed animate-slideDown px-2">
-              {hero?.description || t("heroParagraph")}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-slideDown px-2">
-              <a
-                href={hero?.ctaLink || "#contact"}
-                className="group bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-cyan-500/50 transition transform hover:scale-105 w-full sm:w-auto text-center"
-              >
-                {hero?.ctaText || t("getFreeQuote")}
-              </a>
-              <a
-                href="#projects"
-                className="group border-2 border-purple-400 text-purple-300 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg hover:bg-purple-400/10 transition backdrop-blur-sm w-full sm:w-auto text-center"
-              >
-                {t("viewProjects")}
-              </a>
+        {/* Hero Content Container */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex flex-col items-center justify-center pt-28 pb-16 min-h-screen">
+
+          {/* Glassmorphism Content Card */}
+          <div className="w-full max-w-4xl mx-auto backdrop-blur-xl bg-white/[0.02] border border-white/[0.05] rounded-3xl p-8 sm:p-12 md:p-16 shadow-2xl relative overflow-hidden group">
+
+            {/* Shimmer effect on card hover */}
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.05] to-transparent group-hover:animate-shimmer pointer-events-none"></div>
+
+            <div className="text-center relative z-20">
+
+              {/* Animated Subtitle Badge */}
+              <div className="mb-8 inline-flex items-center justify-center animate-slideDown shadow-[0_0_20px_rgba(6,182,212,0.2)] rounded-full">
+                <span className="px-5 py-2.5 bg-slate-900/80 border border-cyan-500/30 rounded-full text-cyan-400 text-sm sm:text-base font-bold tracking-wide backdrop-blur-md flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                  {hero?.subtitle || t("professionalCleaning")}
+                </span>
+              </div>
+
+              {/* Massive Gradient Title */}
+              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-[1.1] animate-slideUp">
+                <span className="bg-gradient-to-br from-white via-slate-200 to-slate-500 bg-clip-text text-transparent block">
+                  {hero?.title || t("transformYourSpace")}
+                </span>
+              </h1>
+
+              {/* Refined Description */}
+              <p className="text-lg sm:text-xl lg:text-2xl text-slate-300 font-light mb-12 max-w-3xl mx-auto leading-relaxed animate-slideUp" style={{ animationDelay: '100ms' }}>
+                {hero?.description || t("heroParagraph")}
+              </p>
+
+              {/* Innovative CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-5 justify-center items-center animate-slideUp" style={{ animationDelay: '200ms' }}>
+
+                {/* Primary Button - Glow Effect */}
+                <a
+                  href={hero?.ctaLink || "#contact"}
+                  className="relative inline-flex group items-center justify-center w-full sm:w-auto"
+                >
+                  <div className="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-full blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
+                  <span className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-slate-900 border border-slate-700 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+                    {hero?.ctaText || t("getFreeQuote")}
+                    <svg className="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                </a>
+
+                {/* Secondary Button - Glass effect */}
+                <a
+                  href="#projects"
+                  className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-slate-300 border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white backdrop-blur-md transition-all duration-300 relative overflow-hidden group text-center"
+                >
+                  <span className="relative z-10">{t("viewProjects")}</span>
+                </a>
+
+              </div>
             </div>
           </div>
+
+          {/* Scroll Down Indicator */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer opacity-50 hover:opacity-100 transition-opacity" onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
+            <div className="w-8 h-12 border-2 border-slate-400 rounded-full flex justify-center p-2">
+              <div className="w-1.5 h-3 bg-cyan-400 rounded-full animate-scrollIndicator"></div>
+            </div>
+          </div>
+
         </div>
       </section>
 
-        {/* Services Section */}
-        <section id="services" className="py-20 bg-gradient-to-b from-slate-900 to-slate-800 relative">
+      {/* Services Section */}
+      <section id="services" className="py-20 bg-gradient-to-b from-slate-900 to-slate-800 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 animate-slideDown">
             <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -518,6 +576,89 @@ export default function Home() {
       </section>
 
       {/* Before & After Projects Section */}
+      {media.filter(item => item.isBeforeAfter).length > 0 && (
+        <section className="py-24 bg-gradient-to-b from-purple-900 to-slate-900 relative">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="text-center mb-12 animate-slideDown">
+              <h2 className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+                ✨ {t("beforeAfter")}
+              </h2>
+              <p className="text-gray-300 text-lg">See the amazing transformations we've completed</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+              {media.filter(item => item.isBeforeAfter).map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 border-2 border-purple-500/30 hover:border-purple-400 cursor-pointer bg-black"
+                  onClick={() => setSelectedMedia(item)}
+                >
+                  <div className="relative h-96 flex gap-0">
+                    {/* Before Image */}
+                    {item.beforeImageUrl && (
+                      <div className="flex-1 relative overflow-hidden group">
+                        <img
+                          src={item.beforeImageUrl}
+                          alt="Before"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent"></div>
+                        <span className="absolute top-3 left-3 px-3 py-1 bg-red-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
+                          BEFORE
+                        </span>
+                      </div>
+                    )}
+
+                    {/* After Image */}
+                    {item.afterImageUrl && (
+                      <div className="flex-1 relative overflow-hidden group">
+                        <img
+                          src={item.afterImageUrl}
+                          alt="After"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent"></div>
+                        <span className="absolute top-3 right-3 px-3 py-1 bg-green-500/80 text-white text-xs font-bold rounded-full backdrop-blur-sm">
+                          AFTER
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Dark Overlay on Hover */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+
+                    {/* Click Icon */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <div className="text-6xl drop-shadow-xl">🔍</div>
+                    </div>
+                  </div>
+
+                  {/* Content Area - Bottom */}
+                  <div className="bg-gradient-to-t from-slate-900 to-slate-800 p-4 sm:p-5">
+                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-purple-300 transition-colors duration-300 line-clamp-2 mb-1">
+                      {item.title}
+                    </h3>
+                    {item.description && (
+                      <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 mb-2">
+                        {item.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      {new Date(item.createdAt).toLocaleDateString("fr-FR", {
+                        month: "short",
+                        day: "numeric",
+                        year: "2-digit"
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Media Gallery Section */}
       <section id="projects" className="py-24 bg-gradient-to-b from-slate-800 to-slate-900 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12 animate-slideDown">
@@ -525,37 +666,34 @@ export default function Home() {
               {t("mediaGallery")}
             </h2>
             <p className="text-gray-400 text-lg mb-8">{t("gallerySubtitle")}</p>
-            
+
             {/* Filter Buttons */}
             {media.length > 0 && (
               <div className="flex gap-3 justify-center flex-wrap">
                 <button
                   onClick={() => setGalleryFilter("all")}
-                  className={`px-6 py-2 rounded-lg font-semibold transition ${
-                    galleryFilter === "all"
-                      ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50"
-                      : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
-                  }`}
+                  className={`px-6 py-2 rounded-lg font-semibold transition ${galleryFilter === "all"
+                    ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50"
+                    : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
+                    }`}
                 >
                   {t("all")}
                 </button>
                 <button
                   onClick={() => setGalleryFilter("image")}
-                  className={`px-6 py-2 rounded-lg font-semibold transition ${
-                    galleryFilter === "image"
-                      ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50"
-                      : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
-                  }`}
+                  className={`px-6 py-2 rounded-lg font-semibold transition ${galleryFilter === "image"
+                    ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/50"
+                    : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
+                    }`}
                 >
                   🖼️ {t("images")}
                 </button>
                 <button
                   onClick={() => setGalleryFilter("video")}
-                  className={`px-6 py-2 rounded-lg font-semibold transition ${
-                    galleryFilter === "video"
-                      ? "bg-purple-500 text-white shadow-lg shadow-purple-500/50"
-                      : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
-                  }`}
+                  className={`px-6 py-2 rounded-lg font-semibold transition ${galleryFilter === "video"
+                    ? "bg-purple-500 text-white shadow-lg shadow-purple-500/50"
+                    : "bg-slate-700 text-gray-300 hover:text-white hover:bg-slate-600"
+                    }`}
                 >
                   🎬 {t("videos")}
                 </button>
@@ -572,7 +710,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          ) : media.filter(item => galleryFilter === "all" || item.type === galleryFilter).length === 0 ? (
+          ) : media.filter(item => !item.isBeforeAfter && (galleryFilter === "all" || item.type === galleryFilter)).length === 0 ? (
             <div className="text-center py-24 animate-fadeIn">
               <div className="inline-block">
                 <div className="text-6xl mb-4 opacity-50">{galleryFilter === "image" ? "🖼️" : "🎬"}</div>
@@ -583,7 +721,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {media.filter(item => galleryFilter === "all" || item.type === galleryFilter).map((item) => (
+              {media.filter(item => !item.isBeforeAfter && (galleryFilter === "all" || item.type === galleryFilter)).map((item) => (
                 <div
                   key={item.id}
                   className="group relative h-72 sm:h-80 lg:h-96 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300 border-2 border-gray-200 hover:border-cyan-400 cursor-pointer bg-black"
@@ -633,11 +771,10 @@ export default function Home() {
 
                   {/* Type Badge */}
                   <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-20">
-                    <span className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold text-white backdrop-blur-xl border-2 transition-all duration-300 ${
-                      item.type === "image" 
-                        ? "bg-blue-500/60 border-blue-400 group-hover:bg-blue-600/70" 
-                        : "bg-purple-500/60 border-purple-400 group-hover:bg-purple-600/70"
-                    }`}>
+                    <span className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold text-white backdrop-blur-xl border-2 transition-all duration-300 ${item.type === "image"
+                      ? "bg-blue-500/60 border-blue-400 group-hover:bg-blue-600/70"
+                      : "bg-purple-500/60 border-purple-400 group-hover:bg-purple-600/70"
+                      }`}>
                       {item.type === "image" ? "📸 PHOTO" : "🎬 VIDEO"}
                     </span>
                   </div>

@@ -1,32 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withDatabase, buildErrorResponse } from "@/lib/db";
 
 // GET - Fetch about/contact information
 export async function GET() {
   try {
-    let about = await prisma.about.findFirst();
+    const about = await withDatabase(async () => {
+      let record = await prisma.about.findFirst();
 
-    // If no record exists, create default one
-    if (!about) {
-      about = await prisma.about.create({
-        data: {
-          aboutText: "",
-          email: "",
-          phone: "",
-          address: "",
-          instagram: "",
-          facebook: "",
-        },
-      });
-    }
+      // If no record exists, create default one
+      if (!record) {
+        record = await prisma.about.create({
+          data: {
+            aboutText: "",
+            email: "",
+            phone: "",
+            address: "",
+            instagram: "",
+            facebook: "",
+          },
+        });
+      }
+
+      return record;
+    }, "GET /api/about");
 
     return NextResponse.json(about);
   } catch (error) {
-    console.error("Error fetching about:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch about information" },
-      { status: 500 }
-    );
+    const { message, status } = buildErrorResponse(error, "Failed to fetch about information");
+    console.error("[GET /api/about]", message);
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -35,41 +38,43 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
 
-    let about = await prisma.about.findFirst();
+    const about = await withDatabase(async () => {
+      let record = await prisma.about.findFirst();
 
-    if (!about) {
-      // Create new record if doesn't exist
-      about = await prisma.about.create({
-        data: {
-          aboutText: body.aboutText || "",
-          email: body.email || "",
-          phone: body.phone || "",
-          address: body.address || "",
-          instagram: body.instagram || "",
-          facebook: body.facebook || "",
-        },
-      });
-    } else {
-      // Update existing record
-      about = await prisma.about.update({
-        where: { id: about.id },
-        data: {
-          aboutText: body.aboutText !== undefined ? body.aboutText : about.aboutText,
-          email: body.email !== undefined ? body.email : about.email,
-          phone: body.phone !== undefined ? body.phone : about.phone,
-          address: body.address !== undefined ? body.address : about.address,
-          instagram: body.instagram !== undefined ? body.instagram : about.instagram,
-          facebook: body.facebook !== undefined ? body.facebook : about.facebook,
-        },
-      });
-    }
+      if (!record) {
+        // Create new record if doesn't exist
+        record = await prisma.about.create({
+          data: {
+            aboutText: body.aboutText || "",
+            email: body.email || "",
+            phone: body.phone || "",
+            address: body.address || "",
+            instagram: body.instagram || "",
+            facebook: body.facebook || "",
+          },
+        });
+      } else {
+        // Update existing record
+        record = await prisma.about.update({
+          where: { id: record.id },
+          data: {
+            aboutText: body.aboutText !== undefined ? body.aboutText : record.aboutText,
+            email: body.email !== undefined ? body.email : record.email,
+            phone: body.phone !== undefined ? body.phone : record.phone,
+            address: body.address !== undefined ? body.address : record.address,
+            instagram: body.instagram !== undefined ? body.instagram : record.instagram,
+            facebook: body.facebook !== undefined ? body.facebook : record.facebook,
+          },
+        });
+      }
+
+      return record;
+    }, "PUT /api/about");
 
     return NextResponse.json(about);
   } catch (error) {
-    console.error("Error updating about:", error);
-    return NextResponse.json(
-      { error: "Failed to update about information" },
-      { status: 500 }
-    );
+    const { message, status } = buildErrorResponse(error, "Failed to update about information");
+    console.error("[PUT /api/about]", message);
+    return NextResponse.json({ error: message }, { status });
   }
 }

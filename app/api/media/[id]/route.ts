@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withDatabase, buildErrorResponse } from "@/lib/db";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -14,9 +15,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid media ID" }, { status: 400 });
     }
 
-    const media = await prisma.media.findUnique({
-      where: { id },
-    });
+    const media = await withDatabase(async () => {
+      return await prisma.media.findUnique({
+        where: { id },
+      });
+    }, "DELETE /api/media/[id] - Find media");
 
     if (!media) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 });
@@ -37,16 +40,16 @@ export async function DELETE(
     }
 
     // Delete from database
-    await prisma.media.delete({
-      where: { id },
-    });
+    await withDatabase(async () => {
+      return await prisma.media.delete({
+        where: { id },
+      });
+    }, "DELETE /api/media/[id] - Delete media");
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Delete error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete media" },
-      { status: 500 }
-    );
+    const { message, status } = buildErrorResponse(error, "Failed to delete media");
+    console.error("[DELETE /api/media/[id]]", message);
+    return NextResponse.json({ error: message }, { status });
   }
 }

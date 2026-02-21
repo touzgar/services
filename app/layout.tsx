@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AM Clean Services - Professional Cleaning Solutions",
-  description: "Professional cleaning services in Cité El Khadhra, Tunisia. Expert cleaning solutions for your home and business.",
+  title: "AM Clean Services - Solutions de Nettoyage Professionnelles",
+  description: "Services de nettoyage professionnels à Cité El Khadhra, Tunisie. Solutions de nettoyage expertes pour votre maison et votre entreprise.",
 };
 
 export default function RootLayout({
