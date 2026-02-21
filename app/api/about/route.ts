@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withDatabase, buildErrorResponse } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 // GET - Fetch about/contact information
 export async function GET() {
   try {

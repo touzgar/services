@@ -8,11 +8,8 @@ declare global {
 // Production-safe Prisma singleton pattern
 const createPrismaClient = (): PrismaClient => {
   return new PrismaClient({
-    // Logging configuration - minimal in production
-    log:
-      process.env.NODE_ENV === "production"
-        ? ["error"]
-        : ["error", "warn"],
+    // Ensure Prisma engine does not automatically print connection drop errors
+    log: [],
     errorFormat: "pretty",
   });
 };
