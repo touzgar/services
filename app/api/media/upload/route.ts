@@ -6,7 +6,6 @@ import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[POST /api/media/upload] Request received");
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const title = formData.get("title") as string;
@@ -16,16 +15,7 @@ export async function POST(request: NextRequest) {
     const beforeImageUrl = formData.get("beforeImageUrl") as string | null;
     const afterImageUrl = formData.get("afterImageUrl") as string | null;
 
-    console.log("[POST /api/media/upload] Form data received:", {
-      file: file ? `${file.name} (${file.size} bytes)` : "null",
-      title,
-      description,
-      mediaType,
-      isBeforeAfter,
-    });
-
     if (!file || !title || !mediaType) {
-      console.error("[POST /api/media/upload] Missing required fields", { file: !!file, title, mediaType });
       return NextResponse.json(
         { error: "File, title, and media type are required" },
         { status: 400 }
@@ -34,7 +24,6 @@ export async function POST(request: NextRequest) {
 
     // Validate file type
     if (mediaType === "image" && !file.type.startsWith("image/")) {
-      console.error("[POST /api/media/upload] Invalid file type for image:", file.type);
       return NextResponse.json(
         { error: "Please upload an image file" },
         { status: 400 }
@@ -42,7 +31,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (mediaType === "video" && !file.type.startsWith("video/")) {
-      console.error("[POST /api/media/upload] Invalid file type for video:", file.type);
       return NextResponse.json(
         { error: "Please upload a video file" },
         { status: 400 }
@@ -51,9 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Get user ID from cookie
     const userId = request.cookies.get("user_id")?.value;
-    console.log("[POST /api/media/upload] User ID from cookie:", userId);
     if (!userId) {
-      console.error("[POST /api/media/upload] No user_id cookie found");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -66,7 +52,6 @@ export async function POST(request: NextRequest) {
     }, "POST /api/media/upload - Verify user");
 
     if (!userExists) {
-      console.error("[POST /api/media/upload] User ID not found in database:", userId);
       return NextResponse.json(
         { error: "User session invalid. Please log out and log in again." },
         { status: 401 }
@@ -77,9 +62,8 @@ export async function POST(request: NextRequest) {
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
     try {
       await fs.mkdir(uploadsDir, { recursive: true });
-      console.log("[POST /api/media/upload] Uploads directory ready:", uploadsDir);
     } catch (err) {
-      console.error("Error creating uploads directory:", err);
+      // ignore
     }
 
     // Generate unique filename
@@ -93,12 +77,10 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await fs.writeFile(filePath, buffer);
-    console.log("[POST /api/media/upload] File saved to:", filePath);
 
     const fileUrl = `/uploads/${fileName}`;
 
     // Save to database with retry logic
-    console.log("[POST /api/media/upload] Saving to database...");
     const media = await withDatabase(async () => {
       return await prisma.media.create({
         data: {
@@ -125,18 +107,9 @@ export async function POST(request: NextRequest) {
       });
     }, "POST /api/media/upload");
 
-    console.log("[POST /api/media/upload] Successfully created media:", {
-      id: media.id,
-      title: media.title,
-      type: media.type,
-      url: media.url,
-      createdAt: media.createdAt,
-    });
-
     return NextResponse.json(media, { status: 201 });
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to upload file");
-    console.error("[POST /api/media/upload] Error:", message, error);
     return NextResponse.json({ error: message }, { status });
   }
 }

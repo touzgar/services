@@ -126,7 +126,6 @@ export default function AdminDashboard() {
       });
 
       if (!response.ok) {
-        console.error("[fetchMedia] HTTP error:", response.status);
         if (isInitialLoad) {
           setMedia([]);
         }
@@ -151,7 +150,6 @@ export default function AdminDashboard() {
       setMedia(data);
 
     } catch (error) {
-      console.error("[fetchMedia] Exception:", error);
       if (isInitialLoad) {
         setMedia([]);
       }
@@ -180,7 +178,7 @@ export default function AdminDashboard() {
         });
       }
     } catch (error) {
-      console.error("Failed to fetch about:", error);
+      // ignore
     } finally {
       setAboutLoading(false);
     }
@@ -209,7 +207,6 @@ export default function AdminDashboard() {
         setAboutError(error.error || "Failed to save");
       }
     } catch (error) {
-      console.error("Failed to save about:", error);
       setAboutError("Failed to save");
     }
   };
@@ -236,7 +233,7 @@ export default function AdminDashboard() {
         });
       }
     } catch (error) {
-      console.error("Failed to fetch hero:", error);
+      // ignore
     } finally {
       setHeroLoading(false);
     }
@@ -269,7 +266,6 @@ export default function AdminDashboard() {
         setHeroError(error.error || "Failed to save");
       }
     } catch (error) {
-      console.error("Failed to save hero:", error);
       setHeroError("Failed to save");
     }
   };
@@ -283,7 +279,7 @@ export default function AdminDashboard() {
         setServices(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error("Failed to fetch services:", error);
+      // ignore
     } finally {
       setServicesLoading(false);
     }
@@ -317,7 +313,6 @@ export default function AdminDashboard() {
         setServicesError(error.error || "Failed to add service");
       }
     } catch (error) {
-      console.error("Failed to add service:", error);
       setServicesError("Failed to add service");
     }
   };
@@ -362,7 +357,6 @@ export default function AdminDashboard() {
         setServicesError(error.error || "Failed to update service");
       }
     } catch (error) {
-      console.error("Failed to update service:", error);
       setServicesError("Failed to update service");
     }
   };
@@ -389,7 +383,6 @@ export default function AdminDashboard() {
         setServicesError(error.error || "Failed to delete service");
       }
     } catch (error) {
-      console.error("Failed to delete service:", error);
       setServicesError("Failed to delete service");
     }
   }
@@ -407,18 +400,14 @@ export default function AdminDashboard() {
     formData.append("mediaType", activeTab);
 
     try {
-      console.log("[handleUpload] Starting upload for:", title);
       const response = await fetch("/api/media/upload", {
         method: "POST",
         credentials: "include",
         body: formData,
       });
 
-      console.log("[handleUpload] Response status:", response.status);
-
       if (response.ok) {
         const uploadedMedia = await response.json();
-        console.log("[handleUpload] Successfully uploaded:", uploadedMedia);
 
         // Reset form
         setTitle("");
@@ -434,11 +423,9 @@ export default function AdminDashboard() {
         setTimeout(() => fetchMedia(), 500);
       } else {
         const data = await response.json();
-        console.error("[handleUpload] Upload failed:", data);
         setUploadError(data.error || "Upload failed");
       }
     } catch (error) {
-      console.error("[handleUpload] Upload exception:", error);
       setUploadError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
@@ -460,11 +447,10 @@ export default function AdminDashboard() {
         setDeleteConfirm(null);
         await fetchMedia();
       } else {
-        const error = await response.json();
-        console.error("Delete failed:", response.status, error.error);
+        // ignore
       }
     } catch (error) {
-      console.error("Delete failed:", error);
+      // ignore
     }
   };
 

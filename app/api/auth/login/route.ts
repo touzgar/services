@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Internal server error");
-    console.error("[POST /api/auth/login]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }

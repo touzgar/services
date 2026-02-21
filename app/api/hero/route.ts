@@ -35,7 +35,6 @@ export async function GET() {
     return response;
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to fetch hero section");
-    console.error("[GET /api/hero]", message);
     const response = NextResponse.json({ error: message }, { status });
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
     return response;
@@ -79,7 +78,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(hero);
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to update hero section");
-    console.error("[PUT /api/hero]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }

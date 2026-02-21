@@ -14,7 +14,6 @@ export async function GET() {
     return NextResponse.json(services);
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to fetch services");
-    console.error("[GET /api/services]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -44,7 +43,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(service, { status: 201 });
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to create service");
-    console.error("[POST /api/services]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -77,7 +75,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(service);
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to update service");
-    console.error("[PUT /api/services]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -104,7 +101,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Service deleted" });
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to delete service");
-    console.error("[DELETE /api/services]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }

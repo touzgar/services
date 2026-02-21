@@ -24,13 +24,15 @@ export async function withDatabase<T>(
       lastError = error as Error;
 
       // Check if it's a connection error
+      const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
       const isConnectionError =
-        error instanceof Error &&
-        (error.message.includes("P1002") || // Cannot find requested database
-          error.message.includes("P1001") || // Cannot reach database
-          error.message.includes("closed") || // Connection closed
-          error.message.includes("ECONNREFUSED") || // Connection refused
-          error.message.includes("timeout")); // Connection timeout
+        errorMessage.includes("p1001") ||
+        errorMessage.includes("p1002") ||
+        errorMessage.includes("p1011") ||
+        errorMessage.includes("closed") ||
+        errorMessage.includes("econnrefused") ||
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("terminating connection");
 
       if (!isConnectionError || attempt === maxRetries) {
         console.error(
@@ -114,12 +116,15 @@ export function buildErrorResponse(
  */
 export function isConnectionError(error: unknown): boolean {
   if (error instanceof Error) {
+    const errorMessage = error.message.toLowerCase();
     return (
-      error.message.includes("P1001") || // Cannot reach database
-      error.message.includes("P1002") || // Cannot find database
-      error.message.includes("closed") || // Connection closed
-      error.message.includes("ECONNREFUSED") || // Connection refused
-      error.message.includes("timeout") // Timeout
+      errorMessage.includes("p1001") || // Cannot reach database
+      errorMessage.includes("p1002") || // Cannot find database
+      errorMessage.includes("p1011") || // Connection pool issue
+      errorMessage.includes("closed") || // Connection closed
+      errorMessage.includes("econnrefused") || // Connection refused
+      errorMessage.includes("timeout") || // Timeout
+      errorMessage.includes("terminating connection")
     );
   }
   return false;

@@ -34,7 +34,6 @@ export async function DELETE(
           await fs.unlink(filePath);
         }
       } catch (fileError) {
-        console.warn("Could not delete file:", fileError);
         // Continue with database deletion even if file deletion fails
       }
     }
@@ -49,7 +48,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to delete media");
-    console.error("[DELETE /api/media/[id]]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }

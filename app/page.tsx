@@ -72,7 +72,6 @@ export default function Home() {
 
     // Listen for hero section updates from admin panel
     const handleHeroUpdate = () => {
-      console.log("Hero section updated - refreshing...");
       fetchHero();
     };
 
@@ -99,7 +98,6 @@ export default function Home() {
         setMedia([]);
       }
     } catch (error) {
-      console.error("Failed to fetch media:", error);
       setMedia([]);
     }
   };
@@ -112,7 +110,7 @@ export default function Home() {
         setAbout(data);
       }
     } catch (error) {
-      console.error("Failed to fetch about:", error);
+      // ignore silently
     }
   };
 
@@ -125,7 +123,7 @@ export default function Home() {
         setHero(data);
       }
     } catch (error) {
-      console.error("Failed to fetch hero:", error);
+      // ignore silently
     }
   };
 
@@ -137,7 +135,7 @@ export default function Home() {
         setServices(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error("Failed to fetch services:", error);
+      // ignore silently
     }
   };
 

@@ -7,8 +7,6 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    console.log("[GET /api/media] Starting request");
-
     const media = await withDatabase(async () => {
       return await prisma.media.findMany({
         orderBy: { createdAt: "desc" },
@@ -26,9 +24,7 @@ export async function GET() {
       });
     }, "GET /api/media");
 
-    // Simple direct return - always an array
     const arr = Array.isArray(media) ? media : [];
-    console.log("[GET /api/media] Returning array with", arr.length, 'items');
 
     const response = NextResponse.json(arr);
     // Prevent caching so fresh data is always returned
@@ -36,7 +32,6 @@ export async function GET() {
     response.headers.set("Pragma", "no-cache");
     return response;
   } catch (error) {
-    console.error("[GET /api/media] Caught error:", error);
     const response = NextResponse.json([], { status: 500 });
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
     return response;

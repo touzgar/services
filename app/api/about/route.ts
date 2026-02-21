@@ -28,7 +28,6 @@ export async function GET() {
     return NextResponse.json(about);
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to fetch about information");
-    console.error("[GET /api/about]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -74,7 +73,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(about);
   } catch (error) {
     const { message, status } = buildErrorResponse(error, "Failed to update about information");
-    console.error("[PUT /api/about]", message);
     return NextResponse.json({ error: message }, { status });
   }
 }
