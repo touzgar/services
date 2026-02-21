@@ -32,6 +32,7 @@ interface HeroSection {
   title: string;
   subtitle: string;
   description: string;
+  imageUrl?: string;
   ctaText: string;
   ctaLink: string;
 }
@@ -80,10 +81,13 @@ export default function AdminDashboard() {
   const [hero, setHero] = useState<HeroSection | null>(null);
   const [heroLoading, setHeroLoading] = useState(false);
   const [heroEditing, setHeroEditing] = useState(false);
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [heroUploading, setHeroUploading] = useState(false);
   const [heroData, setHeroData] = useState({
     title: "",
     subtitle: "",
     description: "",
+    imageUrl: "",
     ctaText: "",
     ctaLink: "",
   });
@@ -228,6 +232,7 @@ export default function AdminDashboard() {
           title: data.title,
           subtitle: data.subtitle,
           description: data.description,
+          imageUrl: data.imageUrl || "",
           ctaText: data.ctaText,
           ctaLink: data.ctaLink,
         });
@@ -243,12 +248,36 @@ export default function AdminDashboard() {
     try {
       setHeroError("");
       setHeroSuccess("");
+      setHeroUploading(true);
+
+      let finalImageUrl = heroData.imageUrl;
+
+      if (heroFile) {
+        try {
+          // Upload to UploadThing
+          const { generateReactHelpers } = await import("@uploadthing/react");
+          const { uploadFiles } = generateReactHelpers();
+          const uploadResp = await uploadFiles("mediaUploader", {
+            files: [heroFile],
+          });
+          if (uploadResp && uploadResp.length > 0 && uploadResp[0].url) {
+            finalImageUrl = uploadResp[0].url;
+          }
+        } catch (uploadError: any) {
+          throw new Error("Failed to upload hero image: " + uploadError.message);
+        }
+      }
+
+      const payload = {
+        ...heroData,
+        imageUrl: finalImageUrl,
+      };
 
       const response = await fetch("/api/hero", {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(heroData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -265,8 +294,10 @@ export default function AdminDashboard() {
         const error = await response.json();
         setHeroError(error.error || "Failed to save");
       }
-    } catch (error) {
-      setHeroError("Failed to save");
+    } catch (error: any) {
+      setHeroError(error.message || "Failed to save");
+    } finally {
+      setHeroUploading(false);
     }
   };
 
@@ -1228,16 +1259,41 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                    🖼️ Background Image
+                  </label>
+                  <div className="flex flex-col gap-3">
+                    {heroData.imageUrl && !heroFile && (
+                      <div className="relative h-24 w-40 rounded-lg overflow-hidden border border-slate-600">
+                        <img src={heroData.imageUrl} alt="Current hero bg" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setHeroFile(e.target.files[0]);
+                        }
+                      }}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex gap-4 pt-4">
                   <button
                     type="button"
                     onClick={() => {
                       setHeroEditing(false);
+                      setHeroFile(null);
                       if (hero) {
                         setHeroData({
                           title: hero.title,
                           subtitle: hero.subtitle,
                           description: hero.description,
+                          imageUrl: hero.imageUrl || "",
                           ctaText: hero.ctaText,
                           ctaLink: hero.ctaLink,
                         });
@@ -1249,9 +1305,10 @@ export default function AdminDashboard() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-orange-500/50"
+                    disabled={heroUploading}
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-lg hover:shadow-orange-500/50 disabled:opacity-50"
                   >
-                    💾 Save Changes
+                    {heroUploading ? "⏳ Saving..." : "💾 Save Changes"}
                   </button>
                 </div>
               </form>
@@ -1270,6 +1327,15 @@ export default function AdminDashboard() {
                 <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
                   <h3 className="text-lg font-bold text-orange-300 mb-3">📄 Description</h3>
                   <p className="text-gray-200 whitespace-pre-wrap">{hero?.description || "Not set"}</p>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-orange-300 mb-3">🖼️ Background Image</h3>
+                  {hero?.imageUrl ? (
+                    <img src={hero.imageUrl} alt="Hero Background" className="h-40 w-full object-cover rounded border border-slate-600" />
+                  ) : (
+                    <p className="text-gray-400">No image set</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

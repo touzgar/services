@@ -33,6 +33,7 @@ interface HeroSection {
   title: string;
   subtitle: string;
   description: string;
+  imageUrl?: string;
   ctaText: string;
   ctaLink: string;
 }
@@ -355,8 +356,16 @@ export default function Home() {
 
       {/* Innovative Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950">
+        {/* Dynamic Background Image if available */}
+        {hero?.imageUrl && (
+          <div className="absolute inset-0 z-0">
+            <img src={hero.imageUrl} alt="Hero Background" className="w-full h-full object-cover opacity-40 mix-blend-overlay" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-slate-950/20"></div>
+          </div>
+        )}
+
         {/* Dynamic Abstract Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           {/* Main animated gradient orbs */}
           <div className="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-cyan-600/20 blur-[120px] mix-blend-screen animate-blob"></div>
           <div className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-purple-600/20 blur-[120px] mix-blend-screen animate-blob animation-delay-2000"></div>
