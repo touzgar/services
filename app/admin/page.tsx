@@ -1193,16 +1193,43 @@ export default function AdminDashboard() {
               </div>
             ) : heroEditing ? (
               <form className="space-y-4 sm:space-y-5 md:space-y-6" onSubmit={(e) => { e.preventDefault(); handleHeroSave(); }}>
-                {/* Hidden text fields to maintain standard structure behind the scenes */}
-                <input type="hidden" value={heroData.title} />
-                <input type="hidden" value={heroData.subtitle} />
-                <input type="hidden" value={heroData.description} />
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                    📝 Hero Title
+                  </label>
+                  <input
+                    type="text"
+                    value={heroData.title}
+                    onChange={(e) => setHeroData({ ...heroData, title: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
+                    placeholder="ex., Services de nettoyage professionnels"
+                  />
+                </div>
 
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                    🎯 Subtitle
+                  </label>
+                  <input
+                    type="text"
+                    value={heroData.subtitle}
+                    onChange={(e) => setHeroData({ ...heroData, subtitle: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
+                    placeholder="ex., Fiable et écologique"
+                  />
+                </div>
 
-                {/* 
-                  Simplified Interface as requested:
-                  Title, subtitle, and description inputs removed.
-                */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
+                    📄 Description
+                  </label>
+                  <textarea
+                    value={heroData.description}
+                    onChange={(e) => setHeroData({ ...heroData, description: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base resize-none h-20 sm:h-24"
+                    placeholder="Décrivez vos services de nettoyage..."
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
                   <div>
@@ -1288,15 +1315,27 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-6">
                 <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-orange-300 mb-3">📝 Title</h3>
+                  <p className="text-gray-200">{hero?.title || "Not set"}</p>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-orange-300 mb-3">🎯 Subtitle</h3>
+                  <p className="text-gray-200">{hero?.subtitle || "Not set"}</p>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+                  <h3 className="text-lg font-bold text-orange-300 mb-3">📄 Description</h3>
+                  <p className="text-gray-200 whitespace-pre-wrap">{hero?.description || "Not set"}</p>
+                </div>
+
+                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
                   <h3 className="text-lg font-bold text-orange-300 mb-3">🖼️ Hero Image (Background)</h3>
                   {hero?.imageUrl ? (
                     <img src={hero.imageUrl} alt="Hero Background" className="h-[200px] w-auto object-cover rounded border border-slate-600" />
                   ) : (
                     <p className="text-gray-400">No image set</p>
                   )}
-                  <p className="text-sm text-gray-400 mt-2">
-                    Note: Only the image and the buttons will be visible on the landing page!
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
