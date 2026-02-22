@@ -220,25 +220,25 @@ export default function Home() {
           </div>
         </div>
       )}
-      {/* Transparent Absolute Navigation over Hero */}
-      <nav className="absolute top-0 left-0 right-0 z-50 bg-transparent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex justify-between items-center">
-          <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-wide mix-blend-difference drop-shadow-md">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center">
+          <div className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 bg-clip-text text-transparent whitespace-nowrap">
             AM Clean
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-6 lg:space-x-10 items-center">
-            <a href="#services" className="text-white hover:text-cyan-400 transition font-bold tracking-wide drop-shadow-md text-sm lg:text-base">
+          <div className="hidden md:flex space-x-4 lg:space-x-8 items-center">
+            <a href="#services" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
               {t("services")}
             </a>
-            <a href="#about" className="text-white hover:text-cyan-400 transition font-bold tracking-wide drop-shadow-md text-sm lg:text-base">
+            <a href="#about" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
               {t("about")}
             </a>
-            <a href="#projects" className="text-white hover:text-cyan-400 transition font-bold tracking-wide drop-shadow-md text-sm lg:text-base">
+            <a href="#projects" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
               {t("projects")}
             </a>
-            <a href="#contact" className="text-white hover:text-cyan-400 transition font-bold tracking-wide drop-shadow-md text-sm lg:text-base">
+            <a href="#contact" className="text-gray-700 hover:text-cyan-600 transition font-medium text-sm lg:text-base">
               {t("contact")}
             </a>
 
@@ -275,11 +275,11 @@ export default function Home() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg transition overflow-hidden"
+            className="md:hidden flex flex-col gap-1.5 p-2 hover:bg-gray-200 rounded-lg transition"
           >
-            <span className={`w-8 h-1 bg-white drop-shadow-md transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2.5' : ''}`}></span>
-            <span className={`w-8 h-1 bg-white drop-shadow-md transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></span>
-            <span className={`w-8 h-1 bg-white drop-shadow-md transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2.5' : ''}`}></span>
+            <span className={`w-6 h-0.5 bg-gray-700 transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+            <span className={`w-6 h-0.5 bg-gray-700 transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></span>
+            <span className={`w-6 h-0.5 bg-gray-700 transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
           </button>
         </div>
 
@@ -354,74 +354,59 @@ export default function Home() {
         )}
       </nav>
 
-      {/* Real Full Screen Centered Hero Section */}
-      <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden bg-slate-950 pt-20">
+      {/* Innovative Display Hero Section */}
+      <section className="relative w-full flex flex-col items-center bg-slate-950">
 
-        {/* Dynamic Background Image - Filling the screen */}
+        {/* Dynamic Background Image - Natural Full Width (No Cropping, No Empty Space) */}
         {hero?.imageUrl ? (
-          <div className="absolute inset-0 z-0">
+          <div className="relative w-full">
             <img
               src={hero.imageUrl}
               alt="Hero Banner"
-              className="w-full h-full object-cover object-center"
+              className="w-full h-auto block"
             />
-            {/* Elegant dark overlay so the white text is readable! */}
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
+            {/* Very subtle gradient overlay at the bottom so buttons are perfectly readable */}
+            <div className="absolute bottom-0 left-0 right-0 h-1/2 md:h-1/3 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-transparent pointer-events-none"></div>
+
+            {/* Floating Action Buttons Area - Overlaid AT THE BOTTOM of the natural image */}
+            <div className="absolute bottom-4 sm:bottom-8 lg:bottom-12 left-0 right-0 z-20 w-full px-2 sm:px-4 flex justify-center animate-slideUp">
+              <div className="bg-slate-900/60 backdrop-blur-md p-3 sm:p-5 lg:p-6 rounded-2xl sm:rounded-[2rem] shadow-2xl border border-white/10 flex flex-col sm:flex-row gap-2 sm:gap-6 justify-center items-center w-auto max-w-fit">
+
+                {/* Primary Button */}
+                <a
+                  href={hero?.ctaLink || "#contact"}
+                  className="relative inline-flex group items-center justify-center w-full sm:w-auto"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-500"></div>
+                  <span className="relative inline-flex items-center justify-center px-4 py-2 sm:px-10 sm:py-4 text-sm sm:text-lg font-black text-white transition-all duration-200 bg-blue-600 hover:bg-blue-500 rounded-full w-full shadow-2xl whitespace-nowrap">
+                    {hero?.ctaText || t("getFreeQuote")}
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                </a>
+
+                {/* Secondary Button */}
+                <a
+                  href="#projects"
+                  className="w-full sm:w-auto px-4 py-2 sm:px-10 sm:py-4 rounded-full font-black text-sm sm:text-lg text-white border-2 border-white/20 hover:border-white/40 bg-black/40 hover:bg-black/60 backdrop-blur-md transition-all duration-300 text-center shadow-lg whitespace-nowrap"
+                >
+                  <span className="relative z-10">{t("viewProjects")}</span>
+                </a>
+
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="absolute inset-0 bg-slate-900">
+          <div className="w-full h-[60vh] flex items-center justify-center bg-slate-950 relative">
             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
               <div className="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-cyan-600/30 blur-[120px] mix-blend-screen animate-blob"></div>
               <div className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-purple-600/30 blur-[120px] mix-blend-screen animate-blob animation-delay-2000"></div>
             </div>
+            <p className="text-gray-400 text-xl font-bold z-10">Welcome to AM Clean</p>
           </div>
         )}
 
-        {/* Text and Buttons perfectly Centered */}
-        <div className="relative z-20 w-full max-w-5xl mx-auto px-4 text-center flex flex-col items-center">
-
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white drop-shadow-2xl mb-6 tracking-tight leading-tight animate-slideDown">
-            {hero?.title || t("transformYourSpace")}
-          </h1>
-
-          {hero?.subtitle && (
-            <div className="text-xl sm:text-2xl md:text-3xl text-cyan-400 font-semibold mb-8 drop-shadow-lg tracking-wide uppercase">
-              {hero.subtitle}
-            </div>
-          )}
-
-          {hero?.description && (
-            <p className="text-lg sm:text-xl md:text-2xl text-slate-200 font-medium max-w-3xl drop-shadow-xl mb-12 leading-relaxed">
-              {hero.description}
-            </p>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 justify-center items-center w-full animate-slideUp">
-
-            {/* Primary Centered Button */}
-            <a
-              href={hero?.ctaLink || "#contact"}
-              className="relative inline-flex group items-center justify-center w-full sm:w-auto"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-500"></div>
-              <span className="relative inline-flex items-center justify-center px-10 py-5 text-xl font-black text-white transition-all duration-200 bg-blue-600 hover:bg-blue-500 rounded-full w-full shadow-2xl">
-                {hero?.ctaText || t("getFreeQuote")}
-                <svg className="w-6 h-6 ml-3 transition-transform duration-300 group-hover:translate-x-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </span>
-            </a>
-
-            {/* Secondary Centered Button */}
-            <a
-              href="#projects"
-              className="w-full sm:w-auto px-10 py-5 rounded-full font-black text-xl text-white border-2 border-white/50 bg-white/10 hover:bg-white/20 backdrop-blur-md transition-all duration-300 text-center shadow-xl"
-            >
-              <span className="relative z-10">{t("viewProjects")}</span>
-            </a>
-
-          </div>
-        </div>
       </section>
 
       {/* Services Section */}

@@ -16,9 +16,6 @@ export async function GET() {
       if (!record) {
         record = await prisma.heroSection.create({
           data: {
-            title: "Services de Nettoyage Professionnels",
-            subtitle: "Transformez Votre Espace",
-            description: "Découvrez une propreté impeccable avec des solutions écologiques",
             imageUrl: "",
             ctaText: "Commencer",
             ctaLink: "#contact",
@@ -53,9 +50,6 @@ export async function PUT(request: NextRequest) {
       if (!record) {
         record = await prisma.heroSection.create({
           data: {
-            title: body.title || "",
-            subtitle: body.subtitle || "",
-            description: body.description || "",
             imageUrl: body.imageUrl || "",
             ctaText: body.ctaText || "Get Started",
             ctaLink: body.ctaLink || "#contact",
@@ -65,9 +59,6 @@ export async function PUT(request: NextRequest) {
         record = await prisma.heroSection.update({
           where: { id: record.id },
           data: {
-            title: body.title !== undefined ? body.title : record.title,
-            subtitle: body.subtitle !== undefined ? body.subtitle : record.subtitle,
-            description: body.description !== undefined ? body.description : record.description,
             imageUrl: body.imageUrl !== undefined ? body.imageUrl : record.imageUrl,
             ctaText: body.ctaText !== undefined ? body.ctaText : record.ctaText,
             ctaLink: body.ctaLink !== undefined ? body.ctaLink : record.ctaLink,

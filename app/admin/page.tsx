@@ -29,9 +29,6 @@ interface About {
 
 interface HeroSection {
   id: string;
-  title: string;
-  subtitle: string;
-  description: string;
   imageUrl?: string;
   ctaText: string;
   ctaLink: string;
@@ -84,9 +81,6 @@ export default function AdminDashboard() {
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroData, setHeroData] = useState({
-    title: "",
-    subtitle: "",
-    description: "",
     imageUrl: "",
     ctaText: "",
     ctaLink: "",
@@ -229,12 +223,9 @@ export default function AdminDashboard() {
         const data = await response.json();
         setHero(data);
         setHeroData({
-          title: data.title,
-          subtitle: data.subtitle,
-          description: data.description,
           imageUrl: data.imageUrl || "",
-          ctaText: data.ctaText,
-          ctaLink: data.ctaLink,
+          ctaText: data.ctaText || "Commencer",
+          ctaLink: data.ctaLink || "#contact",
         });
       }
     } catch (error) {
@@ -1193,43 +1184,6 @@ export default function AdminDashboard() {
               </div>
             ) : heroEditing ? (
               <form className="space-y-4 sm:space-y-5 md:space-y-6" onSubmit={(e) => { e.preventDefault(); handleHeroSave(); }}>
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
-                    📝 Hero Title
-                  </label>
-                  <input
-                    type="text"
-                    value={heroData.title}
-                    onChange={(e) => setHeroData({ ...heroData, title: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
-                    placeholder="ex., Services de nettoyage professionnels"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
-                    🎯 Subtitle
-                  </label>
-                  <input
-                    type="text"
-                    value={heroData.subtitle}
-                    onChange={(e) => setHeroData({ ...heroData, subtitle: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base"
-                    placeholder="ex., Fiable et écologique"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-2 sm:mb-3">
-                    📄 Description
-                  </label>
-                  <textarea
-                    value={heroData.description}
-                    onChange={(e) => setHeroData({ ...heroData, description: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition text-sm sm:text-base resize-none h-20 sm:h-24"
-                    placeholder="Décrivez vos services de nettoyage..."
-                  />
-                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
                   <div>
@@ -1290,9 +1244,6 @@ export default function AdminDashboard() {
                       setHeroFile(null);
                       if (hero) {
                         setHeroData({
-                          title: hero.title,
-                          subtitle: hero.subtitle,
-                          description: hero.description,
                           imageUrl: hero.imageUrl || "",
                           ctaText: hero.ctaText,
                           ctaLink: hero.ctaLink,
@@ -1314,21 +1265,6 @@ export default function AdminDashboard() {
               </form>
             ) : (
               <div className="space-y-6">
-                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
-                  <h3 className="text-lg font-bold text-orange-300 mb-3">📝 Title</h3>
-                  <p className="text-gray-200">{hero?.title || "Not set"}</p>
-                </div>
-
-                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
-                  <h3 className="text-lg font-bold text-orange-300 mb-3">🎯 Subtitle</h3>
-                  <p className="text-gray-200">{hero?.subtitle || "Not set"}</p>
-                </div>
-
-                <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
-                  <h3 className="text-lg font-bold text-orange-300 mb-3">📄 Description</h3>
-                  <p className="text-gray-200 whitespace-pre-wrap">{hero?.description || "Not set"}</p>
-                </div>
-
                 <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
                   <h3 className="text-lg font-bold text-orange-300 mb-3">🖼️ Hero Image (Background)</h3>
                   {hero?.imageUrl ? (

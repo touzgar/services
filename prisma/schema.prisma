@@ -50,9 +50,6 @@ model About {
 
 model HeroSection {
   id          String     @id @default(cuid())
-  title       String     @default("")
-  subtitle    String     @default("")
-  description String     @default("")
   imageUrl    String?    @default("")  // Background/hero image URL
   ctaText     String     @default("Get Started")  // Call-to-action button text
   ctaLink     String     @default("#contact")      // Where CTA button links to
