@@ -9,7 +9,7 @@ export const ourFileRouter = {
     })
         .onUploadComplete(async ({ metadata, file }) => {
             // Return metadata
-            return { url: file.url };
+            return { url: file.ufsUrl };
         }),
 } satisfies FileRouter;
 

@@ -251,8 +251,8 @@ export default function AdminDashboard() {
           const uploadResp = await uploadFiles("mediaUploader", {
             files: [heroFile],
           });
-          if (uploadResp && uploadResp.length > 0 && uploadResp[0].url) {
-            finalImageUrl = uploadResp[0].url;
+          if (uploadResp && uploadResp.length > 0 && uploadResp[0].ufsUrl) {
+            finalImageUrl = uploadResp[0].ufsUrl;
           }
         } catch (uploadError: any) {
           throw new Error("Failed to upload hero image: " + uploadError.message);
@@ -424,11 +424,11 @@ export default function AdminDashboard() {
         files: [file],
       });
 
-      if (!uploadResp || uploadResp.length === 0 || !uploadResp[0].url) {
+      if (!uploadResp || uploadResp.length === 0 || !uploadResp[0].ufsUrl) {
         throw new Error("Upload to UploadThing failed");
       }
 
-      const fileUrl = uploadResp[0].url;
+      const fileUrl = uploadResp[0].ufsUrl;
 
       // 2. Save metadata to our custom DB endpoint
       const formData = new FormData();
